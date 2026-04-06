@@ -26,7 +26,7 @@ image:
 imageCredentials:
   # Registry server
   registry: registry.gitlab.com
-  # Read-only deploy token — bundled for public use (read_registry scope only)
+  # Read-only deploy token - bundled for helm public use (read_registry scope only)
   username: "public-read-registry"
   password: "gldt-B1CEqyBXpGMXJ9zs6Dmz"
 
