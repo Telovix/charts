@@ -10,29 +10,25 @@ image:
   pullSecrets: []
 
 # ── Registry credentials ──────────────────────────────────────────────────────
-# The Telovix sensor image is hosted in a private GitLab Container Registry.
-# Provide credentials so each node can pull the image.
+# A read-only deploy token is bundled below so users can pull the sensor image
+# without providing any credentials. The token has read_registry scope only —
+# it cannot push images or access source code.
 #
-# Option A — Let Helm create the pull secret (recommended):
-#   helm install ... \
-#     --set imageCredentials.username=telovix-helm-pull \
-#     --set imageCredentials.password=YOUR_DEPLOY_TOKEN
-#
-# Option B — Use a pre-existing secret:
+# Override with existingPullSecret if your organisation uses a centralised
+# secret management solution:
 #   kubectl create secret docker-registry telovix-registry \
 #     --docker-server=registry.gitlab.com \
-#     --docker-username=telovix-helm-pull \
-#     --docker-password=YOUR_DEPLOY_TOKEN \
+#     --docker-username=<your-user> \
+#     --docker-password=<your-token> \
 #     -n telovix
 #   helm install ... --set existingPullSecret=telovix-registry
 #
 imageCredentials:
-  # Registry server (default: GitLab Container Registry)
+  # Registry server
   registry: registry.gitlab.com
-  # Deploy token username — created in GitLab: Settings → Repository → Deploy tokens
-  username: ""
-  # Deploy token value (read_registry scope only)
-  password: ""
+  # Read-only deploy token — bundled for public use (read_registry scope only)
+  username: "public-read-registry"
+  password: "gldt-B1CEqyBXpGMXJ9zs6Dmz"
 
 # Name of a pre-existing imagePullSecret to use instead of creating one.
 # If set, imageCredentials above are ignored.
