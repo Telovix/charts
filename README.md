@@ -143,6 +143,25 @@ helm install telovix-sensor telovix/telovix-sensor \
   --set clusterName=prod-gitops
 ```
 
+#### Private registry (GitLab Container Registry)
+
+The Telovix sensor image is hosted in a private registry.
+You will receive a read-only deploy token with your Telovix license.
+
+```bash
+helm install telovix-sensor telovix/telovix-sensor \
+  --namespace telovix \
+  --create-namespace \
+  --set sensor.consoleUrl=https://console.your-org.com \
+  --set sensor.enrollmentToken=YOUR_ENROLLMENT_TOKEN \
+  --set imageCredentials.username=telovix-helm-pull \
+  --set imageCredentials.password=YOUR_REGISTRY_TOKEN \
+  --set clusterName=prod-oran-east
+```
+
+The chart automatically creates a `kubernetes.io/dockerconfigjson` Secret
+in the sensor namespace and attaches it to the DaemonSet pods.
+
 #### Using a values file
 
 ```bash
@@ -193,11 +212,15 @@ kubectl logs -n telovix \
 
 | Parameter | Description | Default |
 |---|---|---|
-| `image.registry` | Container registry | `ghcr.io` |
+| `image.registry` | Container registry | `registry.gitlab.com` |
 | `image.repository` | Image repository | `telovix/sensor` |
 | `image.tag` | Image tag (empty = chart `appVersion`) | `""` |
 | `image.pullPolicy` | Pull policy | `IfNotPresent` |
 | `image.pullSecrets` | List of image pull secret names | `[]` |
+| `imageCredentials.registry` | Registry host used for auto-created pull secret | `registry.gitlab.com` |
+| `imageCredentials.username` | Deploy token username for auto-created pull secret | `""` |
+| `imageCredentials.password` | Deploy token password for auto-created pull secret | `""` |
+| `existingPullSecret` | Existing `imagePullSecret` name to use instead of creating one | `""` |
 
 ### Resources
 
@@ -411,7 +434,7 @@ kubectl logs -n telovix -l app.kubernetes.io/name=telovix-sensor --previous
 |---|---|---|
 | `permission denied` on BPF mount | Node BPF path is non-standard | Set `bpfPath=/host/sys/fs/bpf` |
 | `failed to pull image` | Image not yet pushed to registry | Push the sensor image or use `image.tag` override |
-| `ImagePullBackOff` with private registry | Missing pull secret | Set `image.pullSecrets` |
+| `ImagePullBackOff` with private registry | Missing pull secret | Set `imageCredentials.*`, `existingPullSecret`, or `image.pullSecrets` |
 | OpenShift `SCC` violation | Missing `privileged` SCC grant | Run `oc adm policy add-scc-to-serviceaccount` (see above) |
 | Pod stuck in `Pending` | No node tolerates the DaemonSet | Check taints: `kubectl get nodes -o json \| jq '.items[].spec.taints'` |
 

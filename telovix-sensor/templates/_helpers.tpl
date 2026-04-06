@@ -79,3 +79,14 @@ Name of the enrollment token Secret.
 {{- printf "%s-enrollment" (include "telovix-sensor.fullname" .) }}
 {{- end }}
 {{- end }}
+
+{{/*
+Name of the image pull secret to use.
+*/}}
+{{- define "telovix-sensor.pullSecretName" -}}
+{{- if .Values.existingPullSecret }}
+{{- .Values.existingPullSecret }}
+{{- else if and .Values.imageCredentials.username .Values.imageCredentials.password }}
+{{- printf "%s-registry" (include "telovix-sensor.fullname" .) }}
+{{- end }}
+{{- end }}
