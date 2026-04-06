@@ -1,0 +1,27 @@
+apiVersion: v2
+name: telovix-sensor
+description: >
+  Telovix eBPF Sensor - Carrier-grade eBPF security for telecom and Open RAN environments.
+  Deploys the Telovix Sensor as a DaemonSet on every Linux node. Requires a running
+  Telovix Console and a valid enrollment token.
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - ebpf
+  - security
+  - telecom
+  - oran
+  - monitoring
+  - telovix
+home: https://telovix.com
+icon: https://telovix.com/favicon.ico
+sources:
+  - https://github.com/telovix/charts
+maintainers:
+  - name: Telovix
+    email: support@telovix.com
+    url: https://telovix.com
+annotations:
+  category: Security
+  licenses: Commercial

@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "telovix-sensor.fullname" . }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "telovix-sensor.labels" . | nindent 4 }}
+data:
+  # Stable install identifier for this Helm release.
+  installId: {{ printf "%s/%s" .Release.Namespace .Release.Name | sha256sum | trunc 32 | quote }}
+  clusterName: {{ .Values.clusterName | quote }}
+  consoleUrl: {{ .Values.sensor.consoleUrl | quote }}

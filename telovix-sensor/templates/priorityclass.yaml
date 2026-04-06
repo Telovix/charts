@@ -1,0 +1,12 @@
+{{- if .Values.priorityClass.create -}}
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: {{ .Values.priorityClass.name }}
+  labels:
+    {{- include "telovix-sensor.labels" . | nindent 4 }}
+value: {{ .Values.priorityClass.value }}
+preemptionPolicy: {{ .Values.priorityClass.preemptionPolicy }}
+globalDefault: false
+description: {{ .Values.priorityClass.description | quote }}
+{{- end }}

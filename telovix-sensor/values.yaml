@@ -1,0 +1,121 @@
+# Telovix Sensor Helm Chart Values
+# Full documentation: https://docs.telovix.com/deployment/kubernetes
+
+# Container image
+image:
+  registry: ghcr.io
+  repository: telovix/sensor
+  tag: ""  # Defaults to .Chart.AppVersion if empty
+  pullPolicy: IfNotPresent
+
+# Sensor configuration (required for deployment)
+sensor:
+  # URL of the Telovix Console.
+  # Example: https://console.your-org.com
+  consoleUrl: ""
+
+  # Enrollment token generated in the Telovix Console.
+  # Go to Sensors -> Deploy -> Generate Enrollment Token.
+  # Required for first-time enrollment. After enrollment the sensor uses mTLS.
+  enrollmentToken: ""
+
+  # Node role label. Used for O-RAN fleet segmentation and policy targeting.
+  # Options: o_du, o_cu, o_ru, gnb, generic_linux
+  nodeRole: "generic_linux"
+
+  # Override the node name reported to the Console.
+  # Defaults to the Kubernetes node name (spec.nodeName).
+  nodeNameOverride: ""
+
+  # Path to a custom Console CA certificate for self-hosted deployments.
+  # If empty, the system CA bundle is used.
+  bootstrapCaCertPath: ""
+
+  # Existing Kubernetes secret containing the enrollment token.
+  # If set, sensor.enrollmentToken is ignored and this secret is used instead.
+  # The secret must have a key named: enrollmentToken
+  existingSecret: ""
+
+# Human-readable name for this cluster shown in the Telovix Console.
+clusterName: ""
+
+# eBPF monitoring is CPU-intensive on busy nodes.
+# Recommended: 3-5% of node CPU capacity.
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 2000m
+    memory: 1024Mi
+
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 1
+    maxSurge: 0
+
+serviceAccount:
+  create: true
+  name: telovix-sensor
+  annotations: {}
+
+rbac:
+  create: true
+  # Allow the sensor to read Kubernetes resources for workload context enrichment.
+  clusterWide: true
+
+# Default: tolerate all taints so every node gets a sensor, including control-plane nodes.
+tolerations:
+  - operator: Exists
+
+# Deploy only to specific nodes if needed.
+nodeSelector: {}
+
+affinity: {}
+
+# Raise scheduling priority so sensors are not evicted under node pressure.
+priorityClass:
+  create: false
+  # Name used for the created PriorityClass when create=true.
+  name: telovix-sensor-priority
+  value: 1000
+  preemptionPolicy: PreemptLowerPriority
+  description: "Priority class for Telovix Sensor - ensures sensor pods are not evicted"
+
+# The sensor stores mTLS certificates and policy packs at this host path.
+statePath: /var/lib/telovix-sensor
+
+# BPF filesystem host path.
+bpfPath: /sys/fs/bpf
+
+podAnnotations: {}
+podLabels: {}
+
+# eBPF requires privileged mode.
+securityContext:
+  privileged: true
+  runAsUser: 0
+
+# Required for host-wide telemetry.
+hostPID: true
+hostNetwork: true
+hostIPC: false
+
+# Use ClusterFirstWithHostNet when hostNetwork is true.
+dnsPolicy: ClusterFirstWithHostNet
+
+# Allow the sensor to flush events and cleanly shut down.
+terminationGracePeriodSeconds: 30
+
+imagePullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+openshift:
+  enabled: false
+
+extraEnv: []
+extraVolumeMounts: []
+extraVolumes: []

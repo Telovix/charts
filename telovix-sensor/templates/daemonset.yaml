@@ -1,0 +1,170 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "telovix-sensor.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "telovix-sensor.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "telovix-sensor.selectorLabels" . | nindent 6 }}
+  updateStrategy:
+    {{- toYaml .Values.updateStrategy | nindent 4 }}
+  template:
+    metadata:
+      labels:
+        {{- include "telovix-sensor.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/enrollment: {{- if .Values.sensor.existingSecret }} {{ .Values.sensor.existingSecret | sha256sum }}{{- else }} {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}{{- end }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "telovix-sensor.serviceAccountName" . }}
+      hostPID: {{ .Values.hostPID }}
+      hostNetwork: {{ .Values.hostNetwork }}
+      hostIPC: {{ .Values.hostIPC }}
+      dnsPolicy: {{ .Values.dnsPolicy }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.priorityClass.create }}
+      priorityClassName: {{ .Values.priorityClass.name }}
+      {{- end }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      initContainers:
+        - name: bpf-init
+          image: {{ include "telovix-sensor.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -eu
+              if ! mountpoint -q /host-bpf 2>/dev/null; then
+                mount -t bpf bpffs /host-bpf || true
+              fi
+              rm -rf /host-bpf/telovix-sensor /host-bpf/telovix || true
+              echo "[telovix] prepared BPF filesystem"
+          securityContext:
+            privileged: true
+            runAsUser: 0
+          volumeMounts:
+            - name: bpf
+              mountPath: /host-bpf
+              mountPropagation: Bidirectional
+      containers:
+        - name: telovix-sensor
+          image: {{ include "telovix-sensor.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: TELOVIX_CONSOLE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "telovix-sensor.fullname" . }}-config
+                  key: consoleUrl
+            - name: TELOVIX_ENROLLMENT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "telovix-sensor.secretName" . }}
+                  key: enrollmentToken
+            - name: TELOVIX_NODE_ROLE
+              value: {{ .Values.sensor.nodeRole | quote }}
+            - name: TELOVIX_NODE_NAME
+              {{- if .Values.sensor.nodeNameOverride }}
+              value: {{ .Values.sensor.nodeNameOverride | quote }}
+              {{- else }}
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+              {{- end }}
+            - name: TELOVIX_CLUSTER_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "telovix-sensor.fullname" . }}-config
+                  key: clusterName
+            - name: TELOVIX_INSTALL_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "telovix-sensor.fullname" . }}-config
+                  key: installId
+            - name: TELOVIX_K8S_DEPLOYMENT
+              value: "true"
+            {{- if .Values.sensor.bootstrapCaCertPath }}
+            - name: TELOVIX_BOOTSTRAP_CA_CERT_PATH
+              value: {{ .Values.sensor.bootstrapCaCertPath | quote }}
+            {{- end }}
+            {{- with .Values.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          volumeMounts:
+            - name: proc
+              mountPath: /proc
+              readOnly: true
+            - name: bpf
+              mountPath: /sys/fs/bpf
+              mountPropagation: Bidirectional
+            - name: sys
+              mountPath: /sys
+              readOnly: true
+            - name: sensor-state
+              mountPath: /var/lib/telovix-sensor
+            - name: run
+              mountPath: /run
+              readOnly: true
+            - name: etc
+              mountPath: /host/etc
+              readOnly: true
+            {{- with .Values.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+      volumes:
+        - name: proc
+          hostPath:
+            path: /proc
+            type: Directory
+        - name: bpf
+          hostPath:
+            path: {{ .Values.bpfPath }}
+            type: DirectoryOrCreate
+        - name: sys
+          hostPath:
+            path: /sys
+            type: Directory
+        - name: sensor-state
+          hostPath:
+            path: {{ .Values.statePath }}
+            type: DirectoryOrCreate
+        - name: run
+          hostPath:
+            path: /run
+            type: Directory
+        - name: etc
+          hostPath:
+            path: /etc
+            type: Directory
+        {{- with .Values.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
