@@ -1,0 +1,51 @@
+{{- if .Values.admission.enabled }}
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: {{ include "telovix-sensor.fullname" . }}-admission
+  labels:
+    {{- include "telovix-sensor.labels" . | nindent 4 }}
+  annotations:
+    # Admission webhook points to the Telovix Console API (external to cluster)
+    telovix.com/console-url: {{ .Values.admission.consoleUrl | quote }}
+webhooks:
+  - name: admission.telovix.com
+    admissionReviewVersions: ["v1"]
+    sideEffects: None
+    failurePolicy: {{ .Values.admission.failurePolicy }}
+    timeoutSeconds: {{ .Values.admission.timeoutSeconds }}
+    clientConfig:
+      url: {{ printf "%s/api/v1/kubernetes/admission/review" .Values.admission.consoleUrl | quote }}
+      {{- if .Values.admission.caBundle }}
+      caBundle: {{ .Values.admission.caBundle | quote }}
+      {{- end }}
+    rules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["pods"]
+        scope: "Namespaced"
+    {{- if or .Values.admission.excludeNamespaces .Values.admission.includeNamespaces }}
+    namespaceSelector:
+      matchExpressions:
+      {{- if .Values.admission.excludeNamespaces }}
+        - key: kubernetes.io/metadata.name
+          operator: NotIn
+          values:
+            {{- range .Values.admission.excludeNamespaces }}
+            - {{ . | quote }}
+            {{- end }}
+      {{- end }}
+      {{- if .Values.admission.includeNamespaces }}
+        - key: kubernetes.io/metadata.name
+          operator: In
+          values:
+            {{- range .Values.admission.includeNamespaces }}
+            - {{ . | quote }}
+            {{- end }}
+      {{- end }}
+    {{- end }}
+    # Only pass the cluster name context in a custom header so the Console
+    # can apply cluster-scoped admission rules
+    matchPolicy: Equivalent
+{{- end }}

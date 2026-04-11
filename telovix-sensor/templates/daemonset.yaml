@@ -93,8 +93,10 @@ spec:
                 secretKeyRef:
                   name: {{ include "telovix-sensor.secretName" . }}
                   key: enrollmentToken
+            {{- if .Values.sensor.nodeRole }}
             - name: TELOVIX_NODE_ROLE
               value: {{ .Values.sensor.nodeRole | quote }}
+            {{- end }}
             - name: TELOVIX_NODE_NAME
               {{- if .Values.sensor.nodeNameOverride }}
               value: {{ .Values.sensor.nodeNameOverride | quote }}

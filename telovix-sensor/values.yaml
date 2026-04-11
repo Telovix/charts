@@ -45,9 +45,12 @@ sensor:
   # Required for first-time enrollment. After enrollment the sensor uses mTLS.
   enrollmentToken: ""
 
-  # Node role label. Used for O-RAN fleet segmentation and policy targeting.
-  # Options: o_du, o_cu, o_ru, gnb, generic_linux
-  nodeRole: "generic_linux"
+  # Node role for policy targeting and fleet segmentation.
+  # Leave empty to auto-detect from Kubernetes node labels:
+  #   control-plane nodes -> control_plane
+  #   worker nodes       -> generic_linux
+  # Explicit override options: o_du, o_cu, o_ru, gnb, bgp_router, generic_linux
+  nodeRole: ""
 
   # Override the node name reported to the Console.
   # Defaults to the Kubernetes node name (spec.nodeName).
@@ -61,6 +64,36 @@ sensor:
   # If set, sensor.enrollmentToken is ignored and this secret is used instead.
   # The secret must have a key named: enrollmentToken
   existingSecret: ""
+
+# ── Admission Controller ──────────────────────────────────────────────────────
+# Enable the Telovix Kubernetes admission webhook.
+# When enabled, K8s will call the Telovix Console before creating pods to
+# enforce admission policies configured in the Console.
+#
+# Prerequisites:
+#   1. Your Telovix Console must be reachable from the K8s API server
+#   2. Set consoleUrl to your Console's HTTPS address
+#   3. Set caBundle to the base64-encoded Console CA cert:
+#      caBundle: $(curl -sk https://<console-url>/api/v1/kubernetes/admission/ca | python3 -c "import sys,json; print(json.load(sys.stdin)['ca_bundle'])")
+#
+admission:
+  enabled: false
+  # Console URL reachable from the K8s API server (not from pods)
+  consoleUrl: ""
+  # Base64-encoded CA certificate for the Console's TLS cert.
+  # Get this from: curl -sk https://<console>/api/v1/kubernetes/admission/ca | jq -r .ca_bundle
+  caBundle: ""
+  # Webhook failure policy: Fail (deny if Console unreachable) or Ignore (allow if unreachable)
+  # Use "Ignore" during initial setup. Switch to "Fail" in production.
+  failurePolicy: "Ignore"
+  # Namespaces to exclude from admission review (always allowed)
+  excludeNamespaces:
+    - kube-system
+    - telovix-system
+  # Optional: restrict to specific namespaces only (empty = all namespaces)
+  includeNamespaces: []
+  # Timeout for the admission webhook call in seconds (1-30)
+  timeoutSeconds: 10
 
 # Human-readable name for this cluster shown in the Telovix Console.
 clusterName: ""
