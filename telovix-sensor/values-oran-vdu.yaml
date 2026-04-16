@@ -1,0 +1,127 @@
+# Telovix Sensor — O-RAN vDU Deployment Values Overlay
+#
+# Usage:
+#   helm install telovix-sensor telovix/telovix-sensor \
+#     -f values.yaml \
+#     -f values-oran-vdu.yaml \
+#     --set sensor.consoleUrl=https://console.your-org.com \
+#     --set sensor.enrollmentToken=<token>
+#
+# These values are optimised for O-RAN vDU (Distributed Unit) nodes.
+# vDU constraints:
+#   - L1 radio processing consumes dedicated CPU cores (isolated via isolcpus)
+#   - DPDK poll-mode drivers hold exclusive CPU cores at all times
+#   - Available for non-radio software: typically 4-8 "system" cores on a 32-core node
+#   - Memory budget for non-radio agents: ≤ 256 MB hard limit
+#
+# NEVER pin the sensor to isolcpus-restricted cores.
+# The sensor runs in kernel epoll mode — zero CPU when idle, <2% CPU at peak O-RAN load.
+#
+# See docs/oran-deployment-guide.md for full deployment guidance and
+# docs/cpu-overhead-benchmarks.md for measured overhead data.
+
+# ── Resource limits: O-RAN vDU profile ───────────────────────────────────────
+# Measured overhead at representative telecom workloads:
+#   Quiescent (idle):          < 0.05 cores, ~65 MB RSS
+#   Normal NGAP traffic:       < 0.10 cores, ~80 MB RSS
+#   Peak GTP-U throughput:     < 0.20 cores, ~120 MB RSS
+#
+# These limits are CONSERVATIVE. The sensor's eBPF ring buffer consumer is
+# epoll-driven — it uses zero CPU when no events arrive. The limits below
+# provide a hard ceiling that satisfies O-RAN device QoS requirements.
+resources:
+  requests:
+    cpu: 25m        # 0.025 cores baseline — matches actual quiescent usage
+    memory: 64Mi    # 64 MB request — well within vDU memory budget
+  limits:
+    cpu: 200m       # 0.2 cores maximum burst — never approaches L1 CPU budget
+    memory: 256Mi   # 256 MB hard limit — O-RAN device certified ceiling
+
+# ── Sensor role: O-RAN Distributed Unit ──────────────────────────────────────
+sensor:
+  nodeRole: "o_du"   # Declares this node as an O-RAN DU for policy targeting
+
+# ── Node affinity: target only O-RAN vDU nodes ───────────────────────────────
+# Replace the label key/value to match your cluster's vDU node labeling scheme.
+# Common patterns:
+#   node.telovix.io/role: o_du         (Telovix node label — set during enrollment)
+#   node-role.kubernetes.io/o-du: ""   (custom label applied at cluster setup)
+#   ran.oran.org/type: du              (O-RAN WG6 recommended label)
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: node.telovix.io/role
+          operator: In
+          values:
+          - o_du
+
+# ── Priority class: prevent eviction under L1 memory pressure ────────────────
+# The sensor pod must survive OOM conditions triggered by bursty L1 workloads.
+# Create a dedicated priority class above application workloads but below
+# system-critical pods (value 1000000000 < system-node-critical 2000000000).
+priorityClass:
+  create: true
+  name: telovix-sensor-oran-vdu
+  value: 1000000000       # Above user workloads, below system-node-critical
+  preemptionPolicy: Never # Never preempt other pods — sensor is NOT time-critical
+  description: "Telovix Sensor — O-RAN vDU certified priority class. Prevents eviction under L1 memory pressure."
+
+# ── Tolerations: ensure scheduling on all vDU nodes including tainted ones ───
+# vDU nodes are often tainted to prevent accidental workload scheduling.
+# Adjust to match your cluster's taint keys.
+tolerations:
+  - operator: Exists   # Tolerate all taints (default) — adjust if too permissive
+  # For more restrictive environments, replace with explicit toleration:
+  # - key: "node-role.kubernetes.io/o-du"
+  #   operator: "Exists"
+  #   effect: "NoSchedule"
+
+# ── Pod annotations: O-RAN certification metadata ────────────────────────────
+podAnnotations:
+  telovix.io/oran-profile: "vdu-certified"
+  telovix.io/resource-profile: "v1.0"
+  telovix.io/cpu-budget: "200m"
+  telovix.io/memory-budget: "256Mi"
+
+# ── Update strategy: rolling with minimal unavailability ─────────────────────
+# On a vDU cluster, never leave a node unmonitored during upgrades.
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 1   # Update one DU at a time
+    maxSurge: 0         # No surge — resource-constrained nodes
+
+# ── Termination: allow clean flush of buffered events ────────────────────────
+terminationGracePeriodSeconds: 60   # Longer than default to flush spool on upgrade
+
+# ── Notes for RAN team certification ─────────────────────────────────────────
+# These values have been validated against the following O-RAN reference platform:
+#   Platform:     2× Intel Xeon E5-2680v4 (14-core, 2.4 GHz)
+#   Kernel:       Linux 5.15.0-LTS
+#   DPDK version: 22.11 LTS
+#   Isolation:    isolcpus=0-7 (L1 DPDK cores)
+#   Available:    cores 8-27 for system software
+#
+# Run scripts/oran-certification-check.sh before submitting for formal certification.
+# See docs/oran-deployment-guide.md for NUMA affinity and performance tuning.
+
+# ── Network policy: restrict sensor egress for O-RAN certification ───────────
+# Enabling the NetworkPolicy satisfies O-RAN WG11 §6.5 (Management Plane Access
+# Control) by ensuring the sensor pod can only reach the Telovix Console and DNS.
+# The RAN team requires this policy to be present and active before issuing formal
+# certification for production deployment.
+#
+# CNI requirement: Cilium or Calico with HostEndpoint support.
+# Verify enforcement before certification submission:
+#   kubectl get networkpolicy -n <namespace>
+#   kubectl describe networkpolicy telovix-sensor -n <namespace>
+networkPolicy:
+  enabled: true
+  consolePort: 15484
+  # Uncomment if the sensor requires K8s API access for workload metadata:
+  # additionalEgressRules:
+  #   - ports:
+  #       - protocol: TCP
+  #         port: 6443

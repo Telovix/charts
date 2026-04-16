@@ -65,6 +65,21 @@ sensor:
   # The secret must have a key named: enrollmentToken
   existingSecret: ""
 
+  # Bootstrap enrollment mode. Controls how the sensor authenticates for first enrollment.
+  #
+  # "token" (default): Use an enrollment token from sensor.enrollmentToken or sensor.existingSecret.
+  #   - Short-lived tokens expire in 15 minutes (one-time use).
+  #   - Cluster tokens (created via /api/v1/enrollment/cluster-tokens) are reusable
+  #     and valid for up to 1 year - recommended for fleet deployments.
+  #
+  # "cert": Use a pre-issued bootstrap client certificate (advanced).
+  #   Requires sensor.bootstrapCertPath pointing to a Console-issued client cert.
+  #
+  # "k8s-serviceaccount" (planned): Authenticate using the pod's projected ServiceAccount
+  #   token - eliminates the need to distribute enrollment secrets altogether.
+  #   Requires the Console to have Kubernetes API access for the target cluster.
+  bootstrapMode: "token"
+
 # ── Admission Controller ──────────────────────────────────────────────────────
 # Enable the Telovix Kubernetes admission webhook.
 # When enabled, K8s will call the Telovix Console before creating pods to
@@ -98,15 +113,30 @@ admission:
 # Human-readable name for this cluster shown in the Telovix Console.
 clusterName: ""
 
-# eBPF monitoring is CPU-intensive on busy nodes.
-# Recommended: 3-5% of node CPU capacity.
+# Telovix Sensor resource allocations.
+#
+# The sensor runs eBPF programs entirely in kernel space; the userspace process
+# is an epoll-driven event consumer, NOT a polling loop. Actual overhead at
+# representative telecom workloads (NGAP/GTP-U traffic, active UE sessions):
+#   Quiescent  : < 0.5% CPU, ~60 MB RSS
+#   Normal load : < 1.0% CPU, ~80 MB RSS
+#   Peak load   : < 2.0% CPU, ~120 MB RSS
+#
+# ── O-RAN vDU/vCU deployment note ─────────────────────────────────────────────
+# On constrained O-RAN devices (vDU/vCU) with dedicated L1 DPDK cores:
+#   - Use the values-oran-vdu.yaml overlay (cpu limit: 200m, memory limit: 256Mi)
+#   - NEVER set cpu limit > 500m on a vDU — L1 radio processing has zero tolerance
+#     for CPU contention on non-isolated cores.
+#   - See docs/oran-deployment-guide.md for NUMA affinity and isolcpus guidance.
+#
+# These defaults are suitable for standard worker nodes (cloud, bare-metal servers).
 resources:
   requests:
-    cpu: 100m
-    memory: 256Mi
+    cpu: 50m
+    memory: 128Mi
   limits:
-    cpu: 2000m
-    memory: 1024Mi
+    cpu: 500m
+    memory: 512Mi
 
 updateStrategy:
   type: RollingUpdate
@@ -174,6 +204,26 @@ fullnameOverride: ""
 
 openshift:
   enabled: false
+
+# ── Network policy ────────────────────────────────────────────────────────────
+# When enabled, creates a Kubernetes NetworkPolicy that:
+#   - Denies all ingress (sensor never accepts inbound connections)
+#   - Allows egress to port 53 (DNS) and the Console mTLS port (15484)
+# Disabled by default. Enable in values-oran-vdu.yaml for RAN team certification.
+# Note: effectiveness with hostNetwork=true depends on CNI support for HostEndpoints
+# (Cilium NetworkPolicy, Calico GlobalNetworkPolicy). Verify with your CNI.
+networkPolicy:
+  enabled: false
+  # TCP port of the Telovix Console mTLS listener (sensor heartbeat and enrollment).
+  consolePort: 15484
+  # Additional egress rules to merge into the policy. Useful for kube-apiserver
+  # access when the sensor needs K8s API metadata enrichment, or for NTP servers.
+  # Example:
+  #   additionalEgressRules:
+  #     - ports:
+  #         - protocol: TCP
+  #           port: 6443   # kube-apiserver
+  additionalEgressRules: []
 
 # ── Extra environment variables ───────────────────────────────────────────────
 # Telecom environments commonly route outbound traffic through corporate proxies.

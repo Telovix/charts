@@ -1,0 +1,42 @@
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "telovix-sensor.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "telovix-sensor.labels" . | nindent 4 }}
+  annotations:
+    telovix.io/purpose: "Restrict sensor pod egress for O-RAN vDU certification compliance."
+    telovix.io/wg11-ref: "O-RAN WG11 Security-Req §6.5 — Management plane access control."
+    telovix.io/note: |
+      When hostNetwork=true the policy is enforced by CNIs that support HostEndpoint
+      policies (Cilium, Calico). Verify enforcement with your CNI before certification submission.
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "telovix-sensor.selectorLabels" . | nindent 6 }}
+  policyTypes:
+    - Ingress
+    - Egress
+  # Deny all inbound connections — the sensor never listens for inbound traffic.
+  ingress: []
+  egress:
+    # DNS: required to resolve the Console hostname from TELOVIX_CONSOLE_URL.
+    - ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Telovix Console mTLS listener — sensor heartbeat and enrollment.
+    # Default: 15484. Override via networkPolicy.consolePort if the Console
+    # is behind a load balancer on a different port.
+    - ports:
+        - protocol: TCP
+          port: {{ .Values.networkPolicy.consolePort }}
+    {{- with .Values.networkPolicy.additionalEgressRules }}
+    # Additional egress rules provided by the operator (e.g. kube-apiserver access,
+    # internal metrics endpoint, or an internal NTP server).
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+{{- end }}
