@@ -66,11 +66,49 @@ spec:
             - -c
             - |
               set -eu
+
+              # ── BPF filesystem setup ────────────────────────────────────────
               if ! mountpoint -q /host-bpf 2>/dev/null; then
                 mount -t bpf bpffs /host-bpf || true
               fi
               rm -rf /host-bpf/telovix-sensor /host-bpf/telovix || true
-              echo "[telovix] prepared BPF filesystem"
+
+              # ── Stale-credential detection ──────────────────────────────────
+              # The sensor stores its mTLS client certificate in the hostPath
+              # volume (/var/lib/telovix-sensor). When the enrollment token
+              # changes — e.g. after a Console database wipe or token rotation —
+              # the Console no longer recognises the old certificate and rejects
+              # every heartbeat with 401 invalid_sensor_trust.
+              #
+              # This block detects the mismatch before the main container starts:
+              #   1. Hash the current enrollment token (from the Kubernetes Secret).
+              #   2. Compare with the hash written after the last successful enroll.
+              #   3. On mismatch: delete the stale credentials so the sensor
+              #      re-enrolls cleanly with the new token.
+              #   4. Write the new hash so future restarts (same token) skip the wipe.
+              #
+              # This is idempotent and safe:
+              #   • Same token, no cert files  → hash written, sensor enrolls fresh.
+              #   • Same token, cert files OK  → hash matches, certs preserved.
+              #   • Token changed              → old certs wiped, sensor re-enrolls.
+              TOKEN_HASH=$(echo -n "${TELOVIX_ENROLLMENT_TOKEN}" | sha256sum | cut -d' ' -f1)
+              STORED_HASH=$(cat /sensor-state/.enrollment-token-hash 2>/dev/null || true)
+              if [ "${TOKEN_HASH}" != "${STORED_HASH}" ]; then
+                echo "[telovix] enrollment token changed — clearing stale credentials for fresh enrollment"
+                rm -f /sensor-state/client.key.pem \
+                      /sensor-state/client.cert.pem \
+                      /sensor-state/console-ca.cert.pem \
+                      /sensor-state/sensor-state.json
+                echo "${TOKEN_HASH}" > /sensor-state/.enrollment-token-hash
+              fi
+
+              echo "[telovix] BPF filesystem ready"
+          env:
+            - name: TELOVIX_ENROLLMENT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "telovix-sensor.secretName" . }}
+                  key: enrollmentToken
           securityContext:
             privileged: true
             runAsUser: 0
@@ -78,6 +116,8 @@ spec:
             - name: bpf
               mountPath: /host-bpf
               mountPropagation: Bidirectional
+            - name: sensor-state
+              mountPath: /sensor-state
       containers:
         - name: telovix-sensor
           image: {{ include "telovix-sensor.image" . }}
