@@ -6,7 +6,7 @@ image:
   registry: registry.gitlab.com
   repository: telovix/sensor
   tag: ""  # Defaults to .Chart.AppVersion if empty
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
   pullSecrets: []
 
 # ── Registry credentials ──────────────────────────────────────────────────────
