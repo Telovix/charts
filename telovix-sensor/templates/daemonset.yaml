@@ -168,6 +168,25 @@ spec:
             {{- with .Values.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
+          lifecycle:
+            preStop:
+              exec:
+                # Notify the Console before Kubernetes sends SIGTERM.
+                # Uses the mTLS cert/key already stored in the sensor-state volume.
+                # Failure is non-fatal — the pod will still be removed.
+                command:
+                  - /bin/sh
+                  - -c
+                  - |
+                    CERT=/var/lib/telovix-sensor/client.cert.pem
+                    KEY=/var/lib/telovix-sensor/client.key.pem
+                    CA=/var/lib/telovix-sensor/console-ca.cert.pem
+                    if [ -f "$CERT" ] && [ -f "$KEY" ] && [ -f "$CA" ]; then
+                      curl -sf --max-time 5 \
+                        --cert "$CERT" --key "$KEY" --cacert "$CA" \
+                        -X POST "${TELOVIX_CONSOLE_URL}/api/v1/sensors/self/decommission" \
+                        -o /dev/null || true
+                    fi
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           securityContext:
