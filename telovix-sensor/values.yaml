@@ -49,7 +49,7 @@ sensor:
   # Leave empty to auto-detect from Kubernetes node labels:
   #   control-plane nodes -> control_plane
   #   worker nodes       -> generic_linux
-  # Explicit override options: o_du, o_cu, o_ru, gnb, bgp_router, generic_linux
+  # Explicit override options: gnb, bgp_router, generic_linux
   nodeRole: ""
 
   # Override the node name reported to the Console.
@@ -79,6 +79,19 @@ sensor:
   #   token - eliminates the need to distribute enrollment secrets altogether.
   #   Requires the Console to have Kubernetes API access for the target cluster.
   bootstrapMode: "token"
+
+  # Deployment tags injected into the Console at enrollment time.
+  # Tags allow fleet segmentation by network, site, or role without manual edits in the Console.
+  # Format: key:value pairs or plain labels.
+  #
+  # Example — multi-site 5G deployment:
+  #   tags:
+  #     - network:oslo-5g
+  #     - site:oslo-dc1
+  #     - plmn:242-01
+  #
+  # Tags are applied once during enrollment and can be edited in the Console afterwards.
+  tags: []
 
 # ── Admission Controller ──────────────────────────────────────────────────────
 # Enable the Telovix Kubernetes admission webhook.
