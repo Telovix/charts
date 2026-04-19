@@ -161,6 +161,10 @@ spec:
             - name: TELOVIX_BOOTSTRAP_CA_CERT_PATH
               value: {{ .Values.sensor.bootstrapCaCertPath | quote }}
             {{- end }}
+            {{- if .Values.sensor.k8sApiserverUrl }}
+            - name: TELOVIX_K8S_APISERVER
+              value: {{ .Values.sensor.k8sApiserverUrl | quote }}
+            {{- end }}
             {{- if .Values.sensor.tags }}
             - name: TELOVIX_SENSOR_TAGS
               value: {{ .Values.sensor.tags | join "," | quote }}

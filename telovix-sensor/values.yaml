@@ -60,6 +60,14 @@ sensor:
   # If empty, the system CA bundle is used.
   bootstrapCaCertPath: ""
 
+  # Direct Kubernetes API server URL for clusters where hostNetwork: true
+  # prevents service ClusterIP access (e.g. Cilium-based k3s clusters).
+  # When empty, the sensor falls back to KUBERNETES_SERVICE_HOST env var,
+  # then to https://kubernetes.default.svc.
+  # Example: https://192.168.128.30:6443
+  # Tip: set this to your master node IP and port when using Cilium.
+  k8sApiserverUrl: ""
+
   # Existing Kubernetes secret containing the enrollment token.
   # If set, sensor.enrollmentToken is ignored and this secret is used instead.
   # The secret must have a key named: enrollmentToken
