@@ -150,7 +150,10 @@ resources:
     memory: 128Mi
   limits:
     cpu: 500m
-    memory: 512Mi
+    # Tetragon (the eBPF engine) requires ~300-350MB RSS during policy loading.
+    # 768Mi provides headroom for the engine + Rust agent + BPF maps on control-plane nodes.
+    # For constrained vDU/vCU nodes use the values-oran-vdu.yaml overlay instead.
+    memory: 768Mi
 
 updateStrategy:
   type: RollingUpdate
