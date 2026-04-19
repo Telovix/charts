@@ -151,9 +151,11 @@ resources:
   limits:
     cpu: 500m
     # Tetragon (the eBPF engine) requires ~300-350MB RSS during policy loading.
-    # 768Mi provides headroom for the engine + Rust agent + BPF maps on control-plane nodes.
+    # Control-plane nodes run etcd, kube-apiserver, scheduler, and CoreDNS in addition
+    # to workload pods — significantly more eBPF events and larger ring buffers than workers.
+    # 1Gi provides headroom for the engine + Rust agent + BPF maps on control-plane nodes.
     # For constrained vDU/vCU nodes use the values-oran-vdu.yaml overlay instead.
-    memory: 768Mi
+    memory: 1Gi
 
 updateStrategy:
   type: RollingUpdate
