@@ -9,6 +9,28 @@ image:
   pullPolicy: Always
   pullSecrets: []
 
+# Sensor flavor: "standard" | "telecom"
+# Determines which container image variant is deployed.
+#
+#   standard  — core eBPF runtime security only, no 5G/O-RAN features (default).
+#               Image tag: <version>  (e.g. registry.gitlab.com/telovix/sensor:1.0.0)
+#               For any Linux node — servers, VMs, Kubernetes worker nodes, edge devices.
+#
+#   telecom   — everything in standard, plus 5G NF role detection (AMF/SMF/UPF/gNB-DU/CU),
+#               NGAP KPI monitoring, and O-RAN security analysis.
+#               Image tag: <version>-telecom  (e.g. registry.gitlab.com/telovix/sensor:1.0.0-telecom)
+#               For Kubernetes nodes hosting 5G core or Open RAN workloads.
+#
+# Changing this value after initial deployment triggers a DaemonSet rollout.
+# No data migration is required — sensor identity and certificates are preserved.
+#
+# Bare-metal equivalent: the Console serves the matching binary based on the
+# ?flavor= query param in the install script URL. The binary naming mirrors this:
+#   standard → telovix-sensor
+#   telecom  → telovix-sensor-telecom
+# Both are staged under TELOVIX_CONSOLE_SENSOR_BINARY_PATH/{arch}/ on the Console host.
+flavor: standard
+
 # ── Registry credentials ──────────────────────────────────────────────────────
 # A read-only deploy token is bundled below so users can pull the sensor image
 # without providing any credentials. The token has read_registry scope only —

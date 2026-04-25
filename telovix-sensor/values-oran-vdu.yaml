@@ -29,6 +29,12 @@
 # These limits are CONSERVATIVE. The sensor's eBPF ring buffer consumer is
 # epoll-driven — it uses zero CPU when no events arrive. The limits below
 # provide a hard ceiling that satisfies O-RAN device QoS requirements.
+
+# vDU nodes run 5G NF workloads — always use the telecom sensor flavor.
+# This deploys registry.gitlab.com/telovix/sensor:<version>-telecom which
+# includes 5G NF role detection, NGAP KPI monitoring, and O-RAN security.
+flavor: telecom
+
 resources:
   requests:
     cpu: 25m        # 0.025 cores baseline — matches actual quiescent usage

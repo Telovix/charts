@@ -1,0 +1,118 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "telovix-console.fullname" . }}
+  labels:
+    {{- include "telovix-console.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "telovix-console.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "telovix-console.selectorLabels" . | nindent 8 }}
+    spec:
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: console
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.httpPort }}
+            - name: sensor
+              containerPort: {{ .Values.service.sensorPort }}
+          env:
+            - name: TELOVIX_CONSOLE_DEPLOYMENT_MODE
+              value: {{ .Values.deploymentMode | quote }}
+            - name: TELOVIX_CONSOLE_VERTICAL
+              value: {{ .Values.platformVertical | quote }}
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "telovix-console.fullname" . }}-secret
+                  key: DATABASE_URL
+            - name: TELOVIX_CONSOLE_CLICKHOUSE_URL
+              value: {{ .Values.clickhouse.url | quote }}
+            - name: TELOVIX_CONSOLE_CLICKHOUSE_DATABASE
+              value: {{ .Values.clickhouse.database | quote }}
+            - name: TELOVIX_CONSOLE_CLICKHOUSE_USER
+              value: {{ .Values.clickhouse.user | quote }}
+            - name: TELOVIX_CONSOLE_CLICKHOUSE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "telovix-console.fullname" . }}-secret
+                  key: CLICKHOUSE_PASSWORD
+            - name: TELOVIX_DATA_DIR
+              value: {{ .Values.persistence.mountPath | quote }}
+            {{- if .Values.sensorTls.secretName }}
+            - name: TELOVIX_CONSOLE_SENSOR_TLS_SERVER_CERT_PATH
+              value: {{ printf "%s/server.crt" .Values.sensorTls.mountPath | quote }}
+            - name: TELOVIX_CONSOLE_SENSOR_TLS_SERVER_KEY_PATH
+              value: {{ printf "%s/server.key" .Values.sensorTls.mountPath | quote }}
+            - name: TELOVIX_CONSOLE_SENSOR_TLS_CLIENT_CA_CERT_PATH
+              value: {{ printf "%s/ca.crt" .Values.sensorTls.mountPath | quote }}
+            - name: TELOVIX_CONSOLE_SENSOR_TLS_ISSUER_CERT_PATH
+              value: {{ printf "%s/issuer.crt" .Values.sensorTls.mountPath | quote }}
+            - name: TELOVIX_CONSOLE_SENSOR_TLS_ISSUER_KEY_PATH
+              value: {{ printf "%s/issuer.key" .Values.sensorTls.mountPath | quote }}
+            {{- end }}
+            {{- if .Values.bootstrap.adminEmail }}
+            - name: TELOVIX_CONSOLE_BOOTSTRAP_ADMIN_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "telovix-console.fullname" . }}-secret
+                  key: BOOTSTRAP_ADMIN_EMAIL
+            - name: TELOVIX_CONSOLE_BOOTSTRAP_ADMIN_NAME
+              value: {{ .Values.bootstrap.adminName | quote }}
+            - name: TELOVIX_CONSOLE_BOOTSTRAP_ADMIN_PASSWORD_HASH
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "telovix-console.fullname" . }}-secret
+                  key: BOOTSTRAP_ADMIN_PASSWORD_HASH
+            {{- end }}
+            {{- if .Values.bootstrap.licenseBundle }}
+            - name: TELOVIX_CONSOLE_BOOTSTRAP_LICENSE_BUNDLE
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "telovix-console.fullname" . }}-secret
+                  key: BOOTSTRAP_LICENSE_BUNDLE
+            {{- end }}
+          volumeMounts:
+            - name: data
+              mountPath: {{ .Values.persistence.mountPath }}
+            {{- if .Values.sensorTls.secretName }}
+            - name: sensor-tls
+              mountPath: {{ .Values.sensorTls.mountPath }}
+              readOnly: true
+            {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: data
+          {{- if .Values.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "telovix-console.fullname" . }}-data
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        {{- if .Values.sensorTls.secretName }}
+        - name: sensor-tls
+          secret:
+            secretName: {{ .Values.sensorTls.secretName }}
+        {{- end }}

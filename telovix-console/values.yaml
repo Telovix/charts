@@ -1,0 +1,102 @@
+# Telovix Console Helm chart values
+# These values can be overridden via --set or -f values-override.yaml
+
+image:
+  repository: registry.gitlab.com/telovix/console
+  tag: "latest"
+  pullPolicy: IfNotPresent
+
+# Deployment mode: "self_hosted" | "managed"
+# Set to "managed" when provisioned from the Telovix Portal
+deploymentMode: self_hosted
+
+# Platform vertical: "standard" | "telecom"
+# standard  — core eBPF security only, no 5G/O-RAN specific features (default)
+# telecom   — enables 5G/O-RAN NF monitoring, NGAP KPI tracking, and the Telco navigation section
+platformVertical: standard
+
+replicaCount: 1
+
+service:
+  type: ClusterIP
+  httpPort: 15483
+  sensorPort: 15484
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+  hosts:
+    - host: console.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# Persistent storage for Console data
+# This PVC persists: staged update binaries, local config overrides,
+# license bundle (if file-mounted), trust material
+persistence:
+  enabled: true
+  storageClass: ""
+  accessMode: ReadWriteOnce
+  size: 5Gi
+  mountPath: /data
+
+# PostgreSQL connection (required)
+database:
+  url: ""
+
+# ClickHouse analytics (required)
+clickhouse:
+  url: ""
+  database: telovix_console
+  user: telovix_console
+  password: ""
+
+# SMTP (optional - for alert/invitation emails)
+smtp:
+  server: ""
+  port: 587
+  username: ""
+  password: ""
+  fromAddress: ""
+  fromName: "Telovix Console"
+
+# Managed deployment bootstrap (set by Portal provisioner)
+bootstrap:
+  adminEmail: ""
+  adminName: ""
+  adminPasswordHash: ""
+  licenseBundle: ""
+
+# Update settings
+update:
+  portalBaseUrl: "https://portal.telovix.com"
+  httpProxy: ""
+  httpsProxy: ""
+
+# Resource limits
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: 2000m
+    memory: 1Gi
+
+# Security context
+podSecurityContext:
+  fsGroup: 1001
+  runAsNonRoot: true
+  runAsUser: 1001
+
+# TLS certificates for sensor mTLS (mount from Secret)
+sensorTls:
+  secretName: ""
+  mountPath: /run/secrets/telovix-tls
+
+nameOverride: ""
+fullnameOverride: ""
