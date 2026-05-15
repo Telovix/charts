@@ -26,8 +26,8 @@ image:
 #
 # Bare-metal equivalent: the Console serves the matching binary based on the
 # ?flavor= query param in the install script URL. The binary naming mirrors this:
-#   standard → telovix-sensor
-#   telecom  → telovix-sensor-telecom
+#   standard > telovix-sensor
+#   telecom  > telovix-sensor-telecom
 # Both are staged under TELOVIX_CONSOLE_SENSOR_BINARY_PATH/{arch}/ on the Console host.
 flavor: standard
 

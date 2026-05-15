@@ -88,9 +88,9 @@ spec:
               #   4. Write the new hash so future restarts (same token) skip the wipe.
               #
               # This is idempotent and safe:
-              #   • Same token, no cert files  → hash written, sensor enrolls fresh.
-              #   • Same token, cert files OK  → hash matches, certs preserved.
-              #   • Token changed              → old certs wiped, sensor re-enrolls.
+              #   • Same token, no cert files  > hash written, sensor enrolls fresh.
+              #   • Same token, cert files OK  > hash matches, certs preserved.
+              #   • Token changed              > old certs wiped, sensor re-enrolls.
               TOKEN_HASH=$(echo -n "${TELOVIX_ENROLLMENT_TOKEN}" | sha256sum | cut -d' ' -f1)
               STORED_HASH=$(cat /sensor-state/.enrollment-token-hash 2>/dev/null || true)
               if [ "${TOKEN_HASH}" != "${STORED_HASH}" ]; then

@@ -53,8 +53,8 @@ app.kubernetes.io/component: sensor
 {{/*
 Full container image reference.
 Appends "-telecom" to the tag when flavor is "telecom":
-  standard → registry.gitlab.com/telovix/sensor:1.0.0
-  telecom  → registry.gitlab.com/telovix/sensor:1.0.0-telecom
+  standard > registry.gitlab.com/telovix/sensor:1.0.0
+  telecom  > registry.gitlab.com/telovix/sensor:1.0.0-telecom
 */}}
 {{- define "telovix-sensor.image" -}}
 {{- $tag := .Values.image.tag | default .Chart.AppVersion }}
