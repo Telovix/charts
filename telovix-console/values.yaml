@@ -1,18 +1,19 @@
 # Telovix Console Helm chart values
-# These values can be overridden via --set or -f values-override.yaml
+# Override these with --set or -f your-values.yaml
 
 image:
   repository: registry.gitlab.com/telovix/console
   tag: "latest"
   pullPolicy: IfNotPresent
 
+imagePullSecrets: []
+
 # Deployment mode: "self_hosted" | "managed"
-# Set to "managed" when provisioned from the Telovix Portal
+# Leave as self_hosted for customer-operated installs.
 deploymentMode: self_hosted
 
 # Platform vertical: "standard" | "telecom"
-# standard  — core eBPF security only, no 5G/O-RAN specific features (default)
-# telecom   — enables 5G/O-RAN NF monitoring, NGAP KPI tracking, and the Telco navigation section
+# telecom enables 5G/O-RAN NF monitoring, NGAP KPI tracking, and the Telco navigation section.
 platformVertical: standard
 
 replicaCount: 1
@@ -35,9 +36,9 @@ ingress:
           pathType: Prefix
   tls: []
 
-# Persistent storage for Console data
-# This PVC persists: staged update binaries, local config overrides,
-# license bundle (if file-mounted), trust material
+# Persistent storage for Console data (/data volume).
+# Stores: local license bundle, staged update binaries, TLS material,
+# policy signing key, and sensor binaries bundled into the image.
 persistence:
   enabled: true
   storageClass: ""
@@ -45,38 +46,96 @@ persistence:
   size: 5Gi
   mountPath: /data
 
-# PostgreSQL connection (required)
+# PostgreSQL connection.
+# Leave empty to configure via the Console setup wizard after first launch.
 database:
   url: ""
 
-# ClickHouse analytics (required)
+# ClickHouse analytics.
+# Leave empty to configure via the Console setup wizard after first launch.
 clickhouse:
   url: ""
   database: telovix_console
   user: telovix_console
   password: ""
 
-# SMTP (optional - for alert/invitation emails)
+# SMTP for Console alert and invitation emails (optional).
 smtp:
   server: ""
   port: 587
   username: ""
   password: ""
-  fromAddress: ""
+  fromAddress: "console@telovix.com"
   fromName: "Telovix Console"
+  starttls: true
+  sslTls: false
 
-# Managed deployment bootstrap (set by Portal provisioner)
+# AI / LLM integration (optional).
+# Set provider to enable AI-assisted investigation and rule authoring.
+# Supported providers: anthropic | openai | custom
+# For "anthropic": set apiKey, model defaults to claude-sonnet-4-6
+# For "openai": set apiKey and model
+# For "custom": set apiKey, model, and baseUrl (OpenAI-compatible endpoint)
+llm:
+  provider: ""
+  apiKey: ""
+  model: ""
+  baseUrl: ""
+  maxContextTokens: 50000
+  httpProxy: ""
+  httpsProxy: ""
+
+# CORS allowed origins (comma-separated).
+# Defaults to the first ingress host if empty.
+cors:
+  allowedOrigins: ""
+
+# Portal integration for license renewal and billing (optional for self-hosted).
+portal:
+  baseUrl: "https://portal.telovix.com"
+
+# Update proxy settings.
+update:
+  httpProxy: ""
+  httpsProxy: ""
+
+# Federation — connect multiple Console instances (optional, advanced).
+# role: standalone (default) | central | region
+federation:
+  role: ""
+  regionId: ""
+  centralUrl: ""
+  centralApiKey: ""
+  apiKey: ""
+  exportIntervalSecs: 300
+
+# Redpanda/Kafka — for scale-plan streaming ingestion (optional).
+redpanda:
+  enabled: false
+  url: ""
+  topic: "telovix.runtime_events"
+
+# Pack registry — for signed policy pack updates (optional).
+packRegistry:
+  url: ""
+  sharedSecret: ""
+
+# Managed deployment bootstrap (set by Portal provisioner — do not edit manually).
 bootstrap:
   adminEmail: ""
   adminName: ""
   adminPasswordHash: ""
   licenseBundle: ""
 
-# Update settings
-update:
-  portalBaseUrl: "https://portal.telovix.com"
-  httpProxy: ""
-  httpsProxy: ""
+# Managed deployment IDs (set by Portal provisioner — do not edit manually).
+managed:
+  consoleId: ""
+  managementSecret: ""
+
+# TLS certificates for sensor mTLS (mount from an existing Secret).
+sensorTls:
+  secretName: ""
+  mountPath: /run/secrets/telovix-tls
 
 # Resource limits
 resources:
@@ -87,16 +146,10 @@ resources:
     cpu: 2000m
     memory: 1Gi
 
-# Security context
 podSecurityContext:
   fsGroup: 1001
   runAsNonRoot: true
   runAsUser: 1001
-
-# TLS certificates for sensor mTLS (mount from Secret)
-sensorTls:
-  secretName: ""
-  mountPath: /run/secrets/telovix-tls
 
 nameOverride: ""
 fullnameOverride: ""

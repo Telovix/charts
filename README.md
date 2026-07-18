@@ -226,12 +226,12 @@ kubectl logs -n telovix \
 
 | Parameter | Description | Default |
 |---|---|---|
-| `resources.requests.cpu` | CPU request | `100m` |
-| `resources.requests.memory` | Memory request | `256Mi` |
-| `resources.limits.cpu` | CPU limit | `2000m` |
-| `resources.limits.memory` | Memory limit | `1024Mi` |
+| `resources.requests.cpu` | CPU request | `50m` |
+| `resources.requests.memory` | Memory request | `128Mi` |
+| `resources.limits.cpu` | CPU limit | `500m` |
+| `resources.limits.memory` | Memory limit | `2Gi` |
 
-> **Sizing guidance:** Start at 3–5% of node CPU capacity. On a 16-core DU node, `resources.limits.cpu=800m` is a reasonable production ceiling.
+> **Sizing guidance:** Start at 3-5% of node CPU capacity. On a 16-core DU node, `resources.limits.cpu=800m` is a reasonable production ceiling.
 
 ### Scheduling
 
@@ -249,7 +249,7 @@ kubectl logs -n telovix \
 | Parameter | Description | Default |
 |---|---|---|
 | `rbac.create` | Create `ClusterRole` and `ClusterRoleBinding` | `true` |
-| `rbac.clusterWide` | Include workload controllers (Deployment, DaemonSet…) | `true` |
+| `rbac.clusterWide` | Include workload controllers (Deployment, DaemonSet...) | `true` |
 | `serviceAccount.create` | Create `ServiceAccount` | `true` |
 | `serviceAccount.name` | ServiceAccount name | `telovix-sensor` |
 | `serviceAccount.annotations` | Annotations on the ServiceAccount (e.g. IRSA) | `{}` |

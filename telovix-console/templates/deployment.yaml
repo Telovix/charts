@@ -14,6 +14,10 @@ spec:
       labels:
         {{- include "telovix-console.selectorLabels" . | nindent 8 }}
     spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
@@ -26,15 +30,26 @@ spec:
             - name: sensor
               containerPort: {{ .Values.service.sensorPort }}
           env:
+            # ── Core ──────────────────────────────────────────────────────────
             - name: TELOVIX_CONSOLE_DEPLOYMENT_MODE
               value: {{ .Values.deploymentMode | quote }}
             - name: TELOVIX_CONSOLE_VERTICAL
               value: {{ .Values.platformVertical | quote }}
+            - name: TELOVIX_CONSOLE_BASE_URL
+              value: {{ if .Values.ingress.enabled }}{{ printf "https://%s" (index .Values.ingress.hosts 0).host | quote }}{{ else }}""{{ end }}
+            - name: TELOVIX_CONSOLE_PUBLIC_URL
+              value: {{ if .Values.ingress.enabled }}{{ printf "https://%s" (index .Values.ingress.hosts 0).host | quote }}{{ else }}""{{ end }}
+            - name: TELOVIX_DATA_DIR
+              value: {{ .Values.persistence.mountPath | quote }}
+
+            # ── Database ──────────────────────────────────────────────────────
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
                   name: {{ include "telovix-console.fullname" . }}-secret
                   key: DATABASE_URL
+
+            # ── ClickHouse ────────────────────────────────────────────────────
             - name: TELOVIX_CONSOLE_CLICKHOUSE_URL
               value: {{ .Values.clickhouse.url | quote }}
             - name: TELOVIX_CONSOLE_CLICKHOUSE_DATABASE
@@ -46,8 +61,25 @@ spec:
                 secretKeyRef:
                   name: {{ include "telovix-console.fullname" . }}-secret
                   key: CLICKHOUSE_PASSWORD
-            - name: TELOVIX_DATA_DIR
-              value: {{ .Values.persistence.mountPath | quote }}
+
+            # ── Portal integration ────────────────────────────────────────────
+            {{- if .Values.portal.baseUrl }}
+            - name: TELOVIX_CONSOLE_PORTAL_RENEWAL_URL
+              value: {{ printf "%s/licenses" (.Values.portal.baseUrl | trimSuffix "/") | quote }}
+            - name: TELOVIX_CONSOLE_PORTAL_UPGRADE_URL
+              value: {{ printf "%s/billing" (.Values.portal.baseUrl | trimSuffix "/") | quote }}
+            {{- end }}
+
+            # ── CORS ──────────────────────────────────────────────────────────
+            {{- if .Values.cors.allowedOrigins }}
+            - name: TELOVIX_CORS_ALLOWED_ORIGINS
+              value: {{ .Values.cors.allowedOrigins | quote }}
+            {{- else if .Values.ingress.enabled }}
+            - name: TELOVIX_CORS_ALLOWED_ORIGINS
+              value: {{ printf "https://%s" (index .Values.ingress.hosts 0).host | quote }}
+            {{- end }}
+
+            # ── Sensor TLS ────────────────────────────────────────────────────
             {{- if .Values.sensorTls.secretName }}
             - name: TELOVIX_CONSOLE_SENSOR_TLS_SERVER_CERT_PATH
               value: {{ printf "%s/server.crt" .Values.sensorTls.mountPath | quote }}
@@ -60,6 +92,8 @@ spec:
             - name: TELOVIX_CONSOLE_SENSOR_TLS_ISSUER_KEY_PATH
               value: {{ printf "%s/issuer.key" .Values.sensorTls.mountPath | quote }}
             {{- end }}
+
+            # ── Bootstrap ─────────────────────────────────────────────────────
             {{- if .Values.bootstrap.adminEmail }}
             - name: TELOVIX_CONSOLE_BOOTSTRAP_ADMIN_EMAIL
               valueFrom:
@@ -81,6 +115,135 @@ spec:
                   name: {{ include "telovix-console.fullname" . }}-secret
                   key: BOOTSTRAP_LICENSE_BUNDLE
             {{- end }}
+
+            # ── Managed IDs ───────────────────────────────────────────────────
+            {{- if .Values.managed.consoleId }}
+            - name: TELOVIX_CONSOLE_ID
+              value: {{ .Values.managed.consoleId | quote }}
+            {{- end }}
+            {{- if .Values.managed.managementSecret }}
+            - name: TELOVIX_CONSOLE_MANAGEMENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "telovix-console.fullname" . }}-secret
+                  key: TELOVIX_CONSOLE_MANAGEMENT_SECRET
+            {{- end }}
+
+            # ── SMTP ──────────────────────────────────────────────────────────
+            {{- if .Values.smtp.server }}
+            - name: TELOVIX_CONSOLE_SMTP_SERVER
+              value: {{ .Values.smtp.server | quote }}
+            - name: TELOVIX_CONSOLE_SMTP_PORT
+              value: {{ .Values.smtp.port | quote }}
+            - name: TELOVIX_CONSOLE_SMTP_FROM
+              value: {{ .Values.smtp.fromAddress | quote }}
+            - name: TELOVIX_CONSOLE_SMTP_FROM_NAME
+              value: {{ .Values.smtp.fromName | quote }}
+            - name: TELOVIX_CONSOLE_SMTP_STARTTLS
+              value: {{ .Values.smtp.starttls | quote }}
+            - name: TELOVIX_CONSOLE_SMTP_SSL_TLS
+              value: {{ .Values.smtp.sslTls | quote }}
+            {{- if .Values.smtp.username }}
+            - name: TELOVIX_CONSOLE_SMTP_USERNAME
+              value: {{ .Values.smtp.username | quote }}
+            {{- end }}
+            {{- if .Values.smtp.password }}
+            - name: TELOVIX_CONSOLE_SMTP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "telovix-console.fullname" . }}-secret
+                  key: TELOVIX_CONSOLE_SMTP_PASSWORD
+            {{- end }}
+            {{- end }}
+
+            # ── LLM / AI ─────────────────────────────────────────────────────
+            {{- if .Values.llm.provider }}
+            - name: TELOVIX_LLM_PROVIDER
+              value: {{ .Values.llm.provider | quote }}
+            - name: TELOVIX_LLM_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "telovix-console.fullname" . }}-secret
+                  key: TELOVIX_LLM_API_KEY
+            {{- if .Values.llm.model }}
+            - name: TELOVIX_LLM_MODEL
+              value: {{ .Values.llm.model | quote }}
+            {{- end }}
+            {{- if .Values.llm.baseUrl }}
+            - name: TELOVIX_LLM_BASE_URL
+              value: {{ .Values.llm.baseUrl | quote }}
+            {{- end }}
+            - name: TELOVIX_LLM_MAX_CONTEXT_TOKENS
+              value: {{ .Values.llm.maxContextTokens | quote }}
+            {{- if .Values.llm.httpProxy }}
+            - name: TELOVIX_LLM_HTTP_PROXY
+              value: {{ .Values.llm.httpProxy | quote }}
+            {{- end }}
+            {{- if .Values.llm.httpsProxy }}
+            - name: TELOVIX_LLM_HTTPS_PROXY
+              value: {{ .Values.llm.httpsProxy | quote }}
+            {{- end }}
+            {{- end }}
+
+            # ── Federation ───────────────────────────────────────────────────
+            {{- if .Values.federation.role }}
+            - name: TELOVIX_FEDERATION_ROLE
+              value: {{ .Values.federation.role | quote }}
+            {{- if .Values.federation.regionId }}
+            - name: TELOVIX_FEDERATION_REGION_ID
+              value: {{ .Values.federation.regionId | quote }}
+            {{- end }}
+            {{- if .Values.federation.centralUrl }}
+            - name: TELOVIX_FEDERATION_CENTRAL_URL
+              value: {{ .Values.federation.centralUrl | quote }}
+            {{- end }}
+            {{- if .Values.federation.centralApiKey }}
+            - name: TELOVIX_FEDERATION_CENTRAL_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "telovix-console.fullname" . }}-secret
+                  key: TELOVIX_FEDERATION_CENTRAL_API_KEY
+            {{- end }}
+            {{- if .Values.federation.apiKey }}
+            - name: TELOVIX_FEDERATION_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "telovix-console.fullname" . }}-secret
+                  key: TELOVIX_FEDERATION_API_KEY
+            {{- end }}
+            - name: TELOVIX_FEDERATION_EXPORT_INTERVAL_SECS
+              value: {{ .Values.federation.exportIntervalSecs | quote }}
+            {{- end }}
+
+            # ── Redpanda ─────────────────────────────────────────────────────
+            {{- if .Values.redpanda.enabled }}
+            - name: TELOVIX_CONSOLE_REDPANDA_URL
+              value: {{ .Values.redpanda.url | quote }}
+            - name: TELOVIX_CONSOLE_REDPANDA_TOPIC
+              value: {{ .Values.redpanda.topic | quote }}
+            {{- end }}
+
+            # ── Pack registry ────────────────────────────────────────────────
+            {{- if .Values.packRegistry.url }}
+            - name: TELOVIX_CONSOLE_PACK_REGISTRY_URL
+              value: {{ .Values.packRegistry.url | quote }}
+            - name: TELOVIX_CONSOLE_PACK_REGISTRY_SHARED_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "telovix-console.fullname" . }}-secret
+                  key: TELOVIX_CONSOLE_PACK_REGISTRY_SHARED_SECRET
+            {{- end }}
+
+            # ── Update proxies ───────────────────────────────────────────────
+            {{- if .Values.update.httpProxy }}
+            - name: TELOVIX_LLM_HTTP_PROXY
+              value: {{ .Values.update.httpProxy | quote }}
+            {{- end }}
+            {{- if .Values.update.httpsProxy }}
+            - name: TELOVIX_LLM_HTTPS_PROXY
+              value: {{ .Values.update.httpsProxy | quote }}
+            {{- end }}
+
           volumeMounts:
             - name: data
               mountPath: {{ .Values.persistence.mountPath }}
@@ -89,20 +252,30 @@ spec:
               mountPath: {{ .Values.sensorTls.mountPath }}
               readOnly: true
             {{- end }}
+
           livenessProbe:
             httpGet:
               path: /healthz
               port: http
-            initialDelaySeconds: 15
+            initialDelaySeconds: 45
             periodSeconds: 30
           readinessProbe:
             httpGet:
               path: /readyz
               port: http
-            initialDelaySeconds: 10
+            initialDelaySeconds: 20
             periodSeconds: 10
+
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
+
       volumes:
         - name: data
           {{- if .Values.persistence.enabled }}
