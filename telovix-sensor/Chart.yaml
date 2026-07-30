@@ -5,8 +5,8 @@ description: >
   Deploys the Telovix Sensor as a DaemonSet on every Linux node. Requires a running
   Telovix Console and a valid enrollment token.
 type: application
-version: 1.0.22
-appVersion: "1.0.22"
+version: 1.0.23
+appVersion: "1.0.23"
 keywords:
   - ebpf
   - security
