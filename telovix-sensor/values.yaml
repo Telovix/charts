@@ -124,19 +124,23 @@ sensor:
 # Prerequisites:
 #   1. Your Telovix Console must be reachable from the K8s API server
 #   2. Set consoleUrl to your Console's HTTPS address
-#   3. Set caBundle to the base64-encoded Console CA cert:
-#      caBundle: $(curl -sk https://<console-url>/api/v1/kubernetes/admission/ca | python3 -c "import sys,json; print(json.load(sys.stdin)['ca_bundle'])")
+#   3. Generate a cluster credential from the Console Admission page
+#   4. Leave caBundle empty for publicly trusted HTTPS certificates. Set it only
+#      when the Console HTTPS endpoint is signed by a private CA.
 #
 admission:
   enabled: false
   # Console URL reachable from the K8s API server (not from pods)
   consoleUrl: ""
-  # Base64-encoded CA certificate for the Console's TLS cert.
-  # Get this from: curl -sk https://<console>/api/v1/kubernetes/admission/ca | jq -r .ca_bundle
+  # One-time cluster credential generated from the Console Admission page.
+  # The Console stores only its hash. Rotating it invalidates the previous URL.
+  credential: ""
+  # Optional base64-encoded private CA certificate. Leave empty when consoleUrl
+  # uses a publicly trusted certificate such as Let's Encrypt.
   caBundle: ""
   # Webhook failure policy: Fail (deny if Console unreachable) or Ignore (allow if unreachable)
   # Use "Ignore" during initial setup. Switch to "Fail" in production.
-  failurePolicy: "Ignore"
+  failurePolicy: "Fail"
   # Namespaces to exclude from admission review (always allowed)
   excludeNamespaces:
     - kube-system
@@ -144,7 +148,7 @@ admission:
   # Optional: restrict to specific namespaces only (empty = all namespaces)
   includeNamespaces: []
   # Timeout for the admission webhook call in seconds (1-30)
-  timeoutSeconds: 10
+  timeoutSeconds: 3
 
 # Human-readable name for this cluster shown in the Telovix Console.
 clusterName: ""
