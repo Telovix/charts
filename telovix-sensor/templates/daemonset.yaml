@@ -6,6 +6,7 @@ metadata:
   labels:
     {{- include "telovix-sensor.labels" . | nindent 4 }}
 spec:
+  minReadySeconds: {{ .Values.minReadySeconds }}
   selector:
     matchLabels:
       {{- include "telovix-sensor.selectorLabels" . | nindent 6 }}
@@ -178,6 +179,16 @@ spec:
                 command:
                   - /usr/local/bin/telovix-sensor
                   - --decommission
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -ec
+                - test -s /var/lib/telovix-sensor/.sensor-ready
+            periodSeconds: 10
+            timeoutSeconds: 1
+            successThreshold: 1
+            failureThreshold: 1
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           securityContext:

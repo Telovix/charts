@@ -189,6 +189,9 @@ updateStrategy:
     maxUnavailable: 1
     maxSurge: 0
 
+# Keep each replacement healthy for this long before updating the next node.
+minReadySeconds: 10
+
 serviceAccount:
   create: true
   name: telovix-sensor

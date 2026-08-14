@@ -267,6 +267,7 @@ kubectl logs -n telovix \
 |---|---|---|
 | `updateStrategy.type` | DaemonSet update strategy | `RollingUpdate` |
 | `updateStrategy.rollingUpdate.maxUnavailable` | Max unavailable pods during update | `1` |
+| `minReadySeconds` | Stable readiness required before updating the next node | `10` |
 | `hostPID` | Grant access to host PID namespace | `true` |
 | `hostNetwork` | Use host network namespace | `true` |
 | `dnsPolicy` | Pod DNS policy | `ClusterFirstWithHostNet` |
