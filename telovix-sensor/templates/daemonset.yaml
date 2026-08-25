@@ -162,10 +162,8 @@ spec:
             - name: TELOVIX_BOOTSTRAP_CA_CERT_PATH
               value: {{ .Values.sensor.bootstrapCaCertPath | quote }}
             {{- end }}
-            {{- if .Values.sensor.tags }}
             - name: TELOVIX_SENSOR_TAGS
-              value: {{ .Values.sensor.tags | join "," | quote }}
-            {{- end }}
+              value: {{ concat (list "deployment:helm" (printf "helm-release:%s" .Release.Name) (printf "helm-namespace:%s" .Release.Namespace)) (default (list) .Values.sensor.tags) | uniq | join "," | quote }}
             {{- with .Values.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
