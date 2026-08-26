@@ -82,6 +82,17 @@ sensor:
   # If empty, the system CA bundle is used.
   bootstrapCaCertPath: ""
 
+  # Telecom packet-capture scope. Leave empty for bounded route-aware discovery.
+  # Explicit interfaces disable automatic host-interface additions.
+  telecomCapture:
+    # Host interfaces such as ens5, bond0, or a Multus/SR-IOV representor.
+    interfaces: []
+    # Optional targets in /proc/<pid>/ns/net@iface form. Omit @iface to capture
+    # all supported telecom traffic in that network namespace.
+    networkNamespaces: []
+    # Optional protocol port overrides, for example: "gtpu=2152;pfcp=8805".
+    ports: ""
+
 
   # Existing Kubernetes secret containing the enrollment token.
   # If set, sensor.enrollmentToken is ignored and this secret is used instead.
