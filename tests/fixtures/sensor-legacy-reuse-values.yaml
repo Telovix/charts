@@ -1,0 +1,4 @@
+# Simulates values retained by `helm upgrade --reuse-values` from a release
+# installed before sensor.telecomCapture was added in chart 1.0.40.
+sensor:
+  telecomCapture: null

@@ -304,15 +304,15 @@ Use `sensor.nodeRole` to segment your fleet by O-RAN function. This label is use
 # Pull latest chart versions
 helm repo update
 
-# Upgrade in place, keeping existing values
+# Upgrade in place, keeping existing values and adopting new chart defaults
 helm upgrade telovix-sensor telovix/telovix-sensor \
   --namespace telovix \
-  --reuse-values
+  --reset-then-reuse-values
 
 # Upgrade and change a specific value
 helm upgrade telovix-sensor telovix/telovix-sensor \
   --namespace telovix \
-  --reuse-values \
+  --reset-then-reuse-values \
   --set resources.limits.cpu=4000m
 ```
 

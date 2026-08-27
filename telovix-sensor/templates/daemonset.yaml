@@ -1,3 +1,5 @@
+{{- $sensorValues := .Values.sensor | default dict -}}
+{{- $telecomCapture := get $sensorValues "telecomCapture" | default dict -}}
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -165,15 +167,15 @@ spec:
             - name: TELOVIX_SENSOR_TAGS
               value: {{ concat (list "deployment:helm" (printf "helm-release:%s" .Release.Name) (printf "helm-namespace:%s" .Release.Namespace)) (default (list) .Values.sensor.tags) | uniq | join "," | quote }}
             {{- if eq .Values.flavor "telecom" }}
-            {{- with .Values.sensor.telecomCapture.interfaces }}
+            {{- with (get $telecomCapture "interfaces") }}
             - name: TELOVIX_MONITORING_INTERFACES
               value: {{ join "," . | quote }}
             {{- end }}
-            {{- with .Values.sensor.telecomCapture.networkNamespaces }}
+            {{- with (get $telecomCapture "networkNamespaces") }}
             - name: TELOVIX_MONITORING_NETNS
               value: {{ join "," . | quote }}
             {{- end }}
-            {{- with .Values.sensor.telecomCapture.ports }}
+            {{- with (get $telecomCapture "ports") }}
             - name: TELOVIX_TELECOM_PORTS
               value: {{ . | quote }}
             {{- end }}
