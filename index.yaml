@@ -3,7 +3,7 @@ entries:
   telovix-console:
   - apiVersion: v2
     appVersion: 1.0.0
-    created: "2026-08-27T07:15:54.197363163+09:00"
+    created: "2026-08-28T19:50:15.94511301+09:00"
     description: Telovix Console - eBPF security platform for 5G/Open RAN environments
     digest: bf200f8a5933636931d080e1042e4c13200126332b8a24b07bdfd5772c740d3d
     home: https://telovix.com
@@ -28,8 +28,38 @@ entries:
       category: Security
       licenses: Commercial
     apiVersion: v2
+    appVersion: 1.0.43
+    created: "2026-08-28T19:50:15.998877523+09:00"
+    description: 'Telovix eBPF Sensor - Carrier-grade eBPF security for telecom and
+      Open RAN environments. Deploys the Telovix Sensor as a DaemonSet on every Linux
+      node. Requires a running Telovix Console and a valid enrollment token. '
+    digest: 7606a671e11a0d10dc7f5a8067d3495d515f41e3527b8fd941b703e35cee3469
+    home: https://telovix.com
+    icon: https://telovix.com/favicon.ico
+    keywords:
+    - ebpf
+    - security
+    - telecom
+    - oran
+    - monitoring
+    - telovix
+    maintainers:
+    - email: support@telovix.com
+      name: Telovix
+      url: https://telovix.com
+    name: telovix-sensor
+    sources:
+    - https://github.com/telovix/charts
+    type: application
+    urls:
+    - https://telovix.github.io/charts/telovix-sensor-1.0.43.tgz
+    version: 1.0.43
+  - annotations:
+      category: Security
+      licenses: Commercial
+    apiVersion: v2
     appVersion: 1.0.41
-    created: "2026-08-27T07:15:54.240785723+09:00"
+    created: "2026-08-28T19:50:15.997728404+09:00"
     description: 'Telovix eBPF Sensor - Carrier-grade eBPF security for telecom and
       Open RAN environments. Deploys the Telovix Sensor as a DaemonSet on every Linux
       node. Requires a running Telovix Console and a valid enrollment token. '
@@ -59,7 +89,7 @@ entries:
       licenses: Commercial
     apiVersion: v2
     appVersion: 1.0.40
-    created: "2026-08-27T07:15:54.238805124+09:00"
+    created: "2026-08-28T19:50:15.996458453+09:00"
     description: 'Telovix eBPF Sensor - Carrier-grade eBPF security for telecom and
       Open RAN environments. Deploys the Telovix Sensor as a DaemonSet on every Linux
       node. Requires a running Telovix Console and a valid enrollment token. '
@@ -89,7 +119,7 @@ entries:
       licenses: Commercial
     apiVersion: v2
     appVersion: 1.0.39
-    created: "2026-08-27T07:15:54.236068075+09:00"
+    created: "2026-08-28T19:50:15.994268493+09:00"
     description: 'Telovix eBPF Sensor - Carrier-grade eBPF security for telecom and
       Open RAN environments. Deploys the Telovix Sensor as a DaemonSet on every Linux
       node. Requires a running Telovix Console and a valid enrollment token. '
@@ -119,7 +149,7 @@ entries:
       licenses: Commercial
     apiVersion: v2
     appVersion: 1.0.38
-    created: "2026-08-27T07:15:54.234684823+09:00"
+    created: "2026-08-28T19:50:15.991095568+09:00"
     description: 'Telovix eBPF Sensor - Carrier-grade eBPF security for telecom and
       Open RAN environments. Deploys the Telovix Sensor as a DaemonSet on every Linux
       node. Requires a running Telovix Console and a valid enrollment token. '
@@ -149,7 +179,7 @@ entries:
       licenses: Commercial
     apiVersion: v2
     appVersion: 1.0.36
-    created: "2026-08-27T07:15:54.233272262+09:00"
+    created: "2026-08-28T19:50:15.989138614+09:00"
     description: 'Telovix eBPF Sensor - Carrier-grade eBPF security for telecom and
       Open RAN environments. Deploys the Telovix Sensor as a DaemonSet on every Linux
       node. Requires a running Telovix Console and a valid enrollment token. '
@@ -179,7 +209,7 @@ entries:
       licenses: Commercial
     apiVersion: v2
     appVersion: 1.0.35
-    created: "2026-08-27T07:15:54.231722754+09:00"
+    created: "2026-08-28T19:50:15.987295752+09:00"
     description: 'Telovix eBPF Sensor - Carrier-grade eBPF security for telecom and
       Open RAN environments. Deploys the Telovix Sensor as a DaemonSet on every Linux
       node. Requires a running Telovix Console and a valid enrollment token. '
@@ -209,7 +239,7 @@ entries:
       licenses: Commercial
     apiVersion: v2
     appVersion: 1.0.30
-    created: "2026-08-27T07:15:54.230154249+09:00"
+    created: "2026-08-28T19:50:15.985390785+09:00"
     description: 'Telovix eBPF Sensor - Carrier-grade eBPF security for telecom and
       Open RAN environments. Deploys the Telovix Sensor as a DaemonSet on every Linux
       node. Requires a running Telovix Console and a valid enrollment token. '
@@ -239,7 +269,7 @@ entries:
       licenses: Commercial
     apiVersion: v2
     appVersion: 1.0.29
-    created: "2026-08-27T07:15:54.228507576+09:00"
+    created: "2026-08-28T19:50:15.983071764+09:00"
     description: 'Telovix eBPF Sensor - Carrier-grade eBPF security for telecom and
       Open RAN environments. Deploys the Telovix Sensor as a DaemonSet on every Linux
       node. Requires a running Telovix Console and a valid enrollment token. '
@@ -269,7 +299,7 @@ entries:
       licenses: Commercial
     apiVersion: v2
     appVersion: 1.0.28
-    created: "2026-08-27T07:15:54.226526371+09:00"
+    created: "2026-08-28T19:50:15.980934975+09:00"
     description: 'Telovix eBPF Sensor - Carrier-grade eBPF security for telecom and
       Open RAN environments. Deploys the Telovix Sensor as a DaemonSet on every Linux
       node. Requires a running Telovix Console and a valid enrollment token. '
@@ -299,7 +329,7 @@ entries:
       licenses: Commercial
     apiVersion: v2
     appVersion: 1.0.27
-    created: "2026-08-27T07:15:54.224108659+09:00"
+    created: "2026-08-28T19:50:15.978323608+09:00"
     description: 'Telovix eBPF Sensor - Carrier-grade eBPF security for telecom and
       Open RAN environments. Deploys the Telovix Sensor as a DaemonSet on every Linux
       node. Requires a running Telovix Console and a valid enrollment token. '
@@ -329,7 +359,7 @@ entries:
       licenses: Commercial
     apiVersion: v2
     appVersion: 1.0.26
-    created: "2026-08-27T07:15:54.222558067+09:00"
+    created: "2026-08-28T19:50:15.97658896+09:00"
     description: 'Telovix eBPF Sensor - Carrier-grade eBPF security for telecom and
       Open RAN environments. Deploys the Telovix Sensor as a DaemonSet on every Linux
       node. Requires a running Telovix Console and a valid enrollment token. '
@@ -359,7 +389,7 @@ entries:
       licenses: Commercial
     apiVersion: v2
     appVersion: 1.0.24
-    created: "2026-08-27T07:15:54.221216065+09:00"
+    created: "2026-08-28T19:50:15.973964388+09:00"
     description: 'Telovix eBPF Sensor - Carrier-grade eBPF security for telecom and
       Open RAN environments. Deploys the Telovix Sensor as a DaemonSet on every Linux
       node. Requires a running Telovix Console and a valid enrollment token. '
@@ -389,7 +419,7 @@ entries:
       licenses: Commercial
     apiVersion: v2
     appVersion: 1.0.23
-    created: "2026-08-27T07:15:54.219894755+09:00"
+    created: "2026-08-28T19:50:15.971155792+09:00"
     description: 'Telovix eBPF Sensor - Carrier-grade eBPF security for telecom and
       Open RAN environments. Deploys the Telovix Sensor as a DaemonSet on every Linux
       node. Requires a running Telovix Console and a valid enrollment token. '
@@ -419,7 +449,7 @@ entries:
       licenses: Commercial
     apiVersion: v2
     appVersion: 1.0.22
-    created: "2026-08-27T07:15:54.218355449+09:00"
+    created: "2026-08-28T19:50:15.968047951+09:00"
     description: 'Telovix eBPF Sensor - Carrier-grade eBPF security for telecom and
       Open RAN environments. Deploys the Telovix Sensor as a DaemonSet on every Linux
       node. Requires a running Telovix Console and a valid enrollment token. '
@@ -449,7 +479,7 @@ entries:
       licenses: Commercial
     apiVersion: v2
     appVersion: 1.0.21
-    created: "2026-08-27T07:15:54.216657318+09:00"
+    created: "2026-08-28T19:50:15.965943269+09:00"
     description: 'Telovix eBPF Sensor - Carrier-grade eBPF security for telecom and
       Open RAN environments. Deploys the Telovix Sensor as a DaemonSet on every Linux
       node. Requires a running Telovix Console and a valid enrollment token. '
@@ -479,7 +509,7 @@ entries:
       licenses: Commercial
     apiVersion: v2
     appVersion: 1.0.20
-    created: "2026-08-27T07:15:54.215137063+09:00"
+    created: "2026-08-28T19:50:15.964108496+09:00"
     description: 'Telovix eBPF Sensor - Carrier-grade eBPF security for telecom and
       Open RAN environments. Deploys the Telovix Sensor as a DaemonSet on every Linux
       node. Requires a running Telovix Console and a valid enrollment token. '
@@ -509,7 +539,7 @@ entries:
       licenses: Commercial
     apiVersion: v2
     appVersion: 1.0.19
-    created: "2026-08-27T07:15:54.213130885+09:00"
+    created: "2026-08-28T19:50:15.961978296+09:00"
     description: 'Telovix eBPF Sensor - Carrier-grade eBPF security for telecom and
       Open RAN environments. Deploys the Telovix Sensor as a DaemonSet on every Linux
       node. Requires a running Telovix Console and a valid enrollment token. '
@@ -539,7 +569,7 @@ entries:
       licenses: Commercial
     apiVersion: v2
     appVersion: 1.0.18
-    created: "2026-08-27T07:15:54.210766175+09:00"
+    created: "2026-08-28T19:50:15.960156154+09:00"
     description: 'Telovix eBPF Sensor - Carrier-grade eBPF security for telecom and
       Open RAN environments. Deploys the Telovix Sensor as a DaemonSet on every Linux
       node. Requires a running Telovix Console and a valid enrollment token. '
@@ -569,7 +599,7 @@ entries:
       licenses: Commercial
     apiVersion: v2
     appVersion: 1.0.17
-    created: "2026-08-27T07:15:54.207693066+09:00"
+    created: "2026-08-28T19:50:15.958257971+09:00"
     description: 'Telovix eBPF Sensor - Carrier-grade eBPF security for telecom and
       Open RAN environments. Deploys the Telovix Sensor as a DaemonSet on every Linux
       node. Requires a running Telovix Console and a valid enrollment token. '
@@ -599,7 +629,7 @@ entries:
       licenses: Commercial
     apiVersion: v2
     appVersion: 1.0.16
-    created: "2026-08-27T07:15:54.205460219+09:00"
+    created: "2026-08-28T19:50:15.956296281+09:00"
     description: 'Telovix eBPF Sensor - Carrier-grade eBPF security for telecom and
       Open RAN environments. Deploys the Telovix Sensor as a DaemonSet on every Linux
       node. Requires a running Telovix Console and a valid enrollment token. '
@@ -629,7 +659,7 @@ entries:
       licenses: Commercial
     apiVersion: v2
     appVersion: 1.0.15
-    created: "2026-08-27T07:15:54.203142014+09:00"
+    created: "2026-08-28T19:50:15.954381519+09:00"
     description: 'Telovix eBPF Sensor - Carrier-grade eBPF security for telecom and
       Open RAN environments. Deploys the Telovix Sensor as a DaemonSet on every Linux
       node. Requires a running Telovix Console and a valid enrollment token. '
@@ -659,7 +689,7 @@ entries:
       licenses: Commercial
     apiVersion: v2
     appVersion: 1.0.13
-    created: "2026-08-27T07:15:54.200525819+09:00"
+    created: "2026-08-28T19:50:15.952195766+09:00"
     description: 'Telovix eBPF Sensor - Carrier-grade eBPF security for telecom and
       Open RAN environments. Deploys the Telovix Sensor as a DaemonSet on every Linux
       node. Requires a running Telovix Console and a valid enrollment token. '
@@ -689,7 +719,7 @@ entries:
       licenses: Commercial
     apiVersion: v2
     appVersion: 1.0.9
-    created: "2026-08-27T07:15:54.248749121+09:00"
+    created: "2026-08-28T19:50:16.006626585+09:00"
     description: 'Telovix eBPF Sensor - Carrier-grade eBPF security for telecom and
       Open RAN environments. Deploys the Telovix Sensor as a DaemonSet on every Linux
       node. Requires a running Telovix Console and a valid enrollment token. '
@@ -719,7 +749,7 @@ entries:
       licenses: Commercial
     apiVersion: v2
     appVersion: 1.0.8
-    created: "2026-08-27T07:15:54.247002568+09:00"
+    created: "2026-08-28T19:50:16.004920402+09:00"
     description: 'Telovix eBPF Sensor - Carrier-grade eBPF security for telecom and
       Open RAN environments. Deploys the Telovix Sensor as a DaemonSet on every Linux
       node. Requires a running Telovix Console and a valid enrollment token. '
@@ -749,7 +779,7 @@ entries:
       licenses: Commercial
     apiVersion: v2
     appVersion: 1.0.7
-    created: "2026-08-27T07:15:54.244875563+09:00"
+    created: "2026-08-28T19:50:16.003050518+09:00"
     description: 'Telovix eBPF Sensor - Carrier-grade eBPF security for telecom and
       Open RAN environments. Deploys the Telovix Sensor as a DaemonSet on every Linux
       node. Requires a running Telovix Console and a valid enrollment token. '
@@ -779,7 +809,7 @@ entries:
       licenses: Commercial
     apiVersion: v2
     appVersion: 1.0.6
-    created: "2026-08-27T07:15:54.242468878+09:00"
+    created: "2026-08-28T19:50:16.00059385+09:00"
     description: 'Telovix eBPF Sensor - Carrier-grade eBPF security for telecom and
       Open RAN environments. Deploys the Telovix Sensor as a DaemonSet on every Linux
       node. Requires a running Telovix Console and a valid enrollment token. '
@@ -809,7 +839,7 @@ entries:
       licenses: Commercial
     apiVersion: v2
     appVersion: latest
-    created: "2026-08-27T07:15:54.199098104+09:00"
+    created: "2026-08-28T19:50:15.947197325+09:00"
     description: 'Telovix eBPF Sensor - Carrier-grade eBPF security for telecom and
       Open RAN environments. Deploys the Telovix Sensor as a DaemonSet on every Linux
       node. Requires a running Telovix Console and a valid enrollment token. '
@@ -834,4 +864,4 @@ entries:
     urls:
     - https://telovix.github.io/charts/telovix-sensor-1.0.0.tgz
     version: 1.0.0
-generated: "2026-08-27T07:15:54.195926839+09:00"
+generated: "2026-08-28T19:50:15.943634969+09:00"
