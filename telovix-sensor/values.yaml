@@ -6,6 +6,10 @@ image:
   registry: registry.gitlab.com
   repository: telovix/sensor
   tag: ""  # Defaults to .Chart.AppVersion if empty
+  # Optional immutable multi-architecture image indexes. Managed upgrades set
+  # the digest matching the selected flavor after verifying release metadata.
+  digest: ""
+  telecomDigest: ""
   pullPolicy: Always
   pullSecrets: []
 
@@ -212,6 +216,37 @@ rbac:
   create: true
   # Allow the sensor to read Kubernetes resources for workload context enrichment.
   clusterWide: true
+
+# ── Console-managed and GitOps-observed upgrades ─────────────────────────────
+# Opt in once with Helm. The release controller is a separate unprivileged
+# Deployment; the node sensor ServiceAccount remains read-only.
+upgradeController:
+  enabled: false
+  # managed: Console starts verified, atomic Helm upgrade Jobs.
+  # flux/argocd: Console observes convergence while Git remains authoritative.
+  managementMode: managed
+  image:
+    registry: registry.gitlab.com
+    repository: telovix/sensor/updater
+    tag: ""  # Defaults to .Chart.AppVersion if empty
+    digest: ""
+    pullPolicy: IfNotPresent
+  pollIntervalSeconds: 30
+  helmTimeoutSeconds: 600
+  identitySecret: ""
+  serviceAccount:
+    create: true
+    name: ""
+    annotations: {}
+  # Optional Secret containing a private Console CA under the key ca.crt.
+  bootstrapCaSecret: ""
+  resources:
+    requests:
+      cpu: 5m
+      memory: 32Mi
+    limits:
+      cpu: 100m
+      memory: 96Mi
 
 # Default: tolerate all taints so every node gets a sensor, including control-plane nodes.
 tolerations:

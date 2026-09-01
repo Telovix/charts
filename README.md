@@ -318,6 +318,31 @@ helm upgrade telovix-sensor telovix/telovix-sensor \
 
 The DaemonSet uses a `RollingUpdate` strategy with `maxUnavailable: 1` - nodes are updated one at a time. Live monitoring continues on all other nodes during the rollout.
 
+### Console-managed upgrades
+
+Enable the cluster-local release controller once, then start future Kubernetes sensor upgrades from **Sensors > Fleet > Manage updates**:
+
+The one-time bootstrap command requires Helm 3.14 or newer because it safely merges new chart defaults with the release's existing values.
+
+```bash
+helm upgrade telovix-sensor telovix/telovix-sensor \
+  --namespace telovix-system \
+  --reset-then-reuse-values \
+  --set upgradeController.enabled=true \
+  --set upgradeController.managementMode=managed
+```
+
+Managed upgrades verify the published chart and sensor image digests, run a Kubernetes server-side Helm preflight, and use an atomic rolling upgrade. Helm restores the previous release automatically when readiness fails. The release controller is a separate non-privileged Deployment; sensor pods and their ServiceAccount do not receive upgrade permissions.
+
+### Flux and Argo CD
+
+For Git-authoritative clusters, use `flux` or `argocd` instead of `managed`. The controller reports release convergence but cannot create upgrade Jobs or modify the sensor release. Configure GitHub or GitLab automation in the Console after the controller enrolls.
+
+- GitHub receives a `repository_dispatch` event named `telovix_sensor_release` with the target chart version, sensor version, release identity, and signed release plan.
+- GitLab receives a pipeline trigger with `TELOVIX_RELEASE_PLAN_ID`, `TELOVIX_TARGET_CHART_VERSION`, `TELOVIX_TARGET_SENSOR_VERSION`, `TELOVIX_SIGNED_PLAN_PAYLOAD`, and `TELOVIX_SIGNED_PLAN_SIGNATURE` variables.
+
+The repository workflow must commit the requested version to the declared deployment branch. Flux or Argo CD then applies that Git change and the Console marks the release complete only after the cluster reports the target chart and sensor versions.
+
 
 ## Uninstall
 

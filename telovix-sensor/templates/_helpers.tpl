@@ -59,9 +59,43 @@ Appends "-telecom" to the tag when flavor is "telecom":
 {{- define "telovix-sensor.image" -}}
 {{- $tag := .Values.image.tag | default .Chart.AppVersion }}
 {{- if eq .Values.flavor "telecom" }}
+{{- if .Values.image.telecomDigest }}
+{{- printf "%s/%s@%s" .Values.image.registry .Values.image.repository .Values.image.telecomDigest }}
+{{- else }}
 {{- printf "%s/%s:%s-telecom" .Values.image.registry .Values.image.repository $tag }}
+{{- end }}
+{{- else }}
+{{- if .Values.image.digest }}
+{{- printf "%s/%s@%s" .Values.image.registry .Values.image.repository .Values.image.digest }}
 {{- else }}
 {{- printf "%s/%s:%s" .Values.image.registry .Values.image.repository $tag }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/* Release-controller resource names and image. */}}
+{{- define "telovix-sensor.updaterName" -}}
+{{- printf "%s-updater" (include "telovix-sensor.fullname" .) | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{- define "telovix-sensor.updaterServiceAccountName" -}}
+{{- if .Values.upgradeController.serviceAccount.create }}
+{{- default (include "telovix-sensor.updaterName" .) .Values.upgradeController.serviceAccount.name }}
+{{- else }}
+{{- required "upgradeController.serviceAccount.name is required when serviceAccount.create=false" .Values.upgradeController.serviceAccount.name }}
+{{- end }}
+{{- end }}
+
+{{- define "telovix-sensor.updaterIdentitySecretName" -}}
+{{- default (printf "%s-identity" (include "telovix-sensor.updaterName" .)) .Values.upgradeController.identitySecret }}
+{{- end }}
+
+{{- define "telovix-sensor.updaterImage" -}}
+{{- if .Values.upgradeController.image.digest }}
+{{- printf "%s/%s@%s" .Values.upgradeController.image.registry .Values.upgradeController.image.repository .Values.upgradeController.image.digest }}
+{{- else }}
+{{- $tag := .Values.upgradeController.image.tag | default .Chart.AppVersion }}
+{{- printf "%s/%s:%s" .Values.upgradeController.image.registry .Values.upgradeController.image.repository $tag }}
 {{- end }}
 {{- end }}
 

@@ -1,0 +1,276 @@
+{{- if .Values.upgradeController.enabled }}
+{{- $mode := required "upgradeController.managementMode is required" .Values.upgradeController.managementMode }}
+{{- if not (has $mode (list "managed" "flux" "argocd")) }}
+{{- fail "upgradeController.managementMode must be managed, flux, or argocd" }}
+{{- end }}
+{{- if not (regexMatch "^https://" (required "sensor.consoleUrl is required when upgradeController.enabled=true" .Values.sensor.consoleUrl)) }}
+{{- fail "sensor.consoleUrl must start with https:// when upgradeController.enabled=true" }}
+{{- end }}
+{{- if not .Values.clusterName }}
+{{- fail "clusterName is required when upgradeController.enabled=true" }}
+{{- end }}
+{{- if or (lt (int .Values.upgradeController.pollIntervalSeconds) 10) (gt (int .Values.upgradeController.pollIntervalSeconds) 300) }}
+{{- fail "upgradeController.pollIntervalSeconds must be between 10 and 300" }}
+{{- end }}
+{{- if or (lt (int .Values.upgradeController.helmTimeoutSeconds) 120) (gt (int .Values.upgradeController.helmTimeoutSeconds) 3600) }}
+{{- fail "upgradeController.helmTimeoutSeconds must be between 120 and 3600" }}
+{{- end }}
+{{- $name := include "telovix-sensor.updaterName" . }}
+{{- $serviceAccount := include "telovix-sensor.updaterServiceAccountName" . }}
+{{- $identitySecret := include "telovix-sensor.updaterIdentitySecretName" . }}
+{{- $existingIdentity := lookup "v1" "Secret" .Release.Namespace $identitySecret }}
+{{- $sensorTag := .Values.image.tag | default .Chart.AppVersion }}
+{{- if .Values.upgradeController.serviceAccount.create }}
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ $serviceAccount }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: telovix-release-controller
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: release-controller
+  {{- with .Values.upgradeController.serviceAccount.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+automountServiceAccountToken: true
+---
+{{- end }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ $identitySecret }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: telovix-release-controller
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: release-controller
+type: Opaque
+data:
+  {{- if and $existingIdentity $existingIdentity.data }}
+  {{- toYaml $existingIdentity.data | nindent 2 }}
+  {{- else }} {}
+  {{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ $name }}
+  namespace: {{ .Release.Namespace }}
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: [{{ $identitySecret | quote }}]
+    verbs: ["get", "patch"]
+  {{- if eq $mode "managed" }}
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets", "serviceaccounts", "services"]
+    verbs: ["get", "list", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+  - apiGroups: ["apps"]
+    resources: ["daemonsets", "deployments"]
+    verbs: ["get", "list", "create", "update", "patch", "delete"]
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["get", "list", "create", "delete"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["networkpolicies"]
+    verbs: ["get", "list", "create", "update", "patch", "delete"]
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["roles", "rolebindings"]
+    verbs: ["get", "list", "create", "update", "patch", "delete"]
+  {{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ $name }}
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ $name }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ $serviceAccount }}
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ $name }}
+rules:
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    resourceNames: ["kube-system"]
+    verbs: ["get"]
+  {{- if eq $mode "managed" }}
+  {{- if .Values.rbac.create }}
+  # Holding the sensor's existing read-only permissions lets Kubernetes
+  # authorize updates to that exact ClusterRole without granting `escalate`.
+  - apiGroups: [""]
+    resources: ["nodes", "pods", "namespaces", "services", "endpoints"]
+    verbs: ["get", "list", "watch"]
+  {{- if .Values.rbac.clusterWide }}
+  - apiGroups: ["apps"]
+    resources: ["deployments", "daemonsets", "replicasets", "statefulsets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["get", "list", "watch"]
+  {{- end }}
+  {{- end }}
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["clusterroles"]
+    resourceNames: [{{ include "telovix-sensor.fullname" . | quote }}, {{ $name | quote }}]
+    verbs: ["get", "update", "patch"]
+  - apiGroups: ["rbac.authorization.k8s.io"]
+    resources: ["clusterrolebindings"]
+    resourceNames:
+      - {{ printf "%s-%s" (include "telovix-sensor.fullname" .) .Release.Namespace | quote }}
+      - {{ $name | quote }}
+    verbs: ["get", "update", "patch"]
+  - apiGroups: ["admissionregistration.k8s.io"]
+    resources: ["validatingwebhookconfigurations"]
+    resourceNames: [{{ printf "%s-admission" (include "telovix-sensor.fullname" .) | quote }}]
+    verbs: ["get", "update", "patch"]
+  - apiGroups: ["scheduling.k8s.io"]
+    resources: ["priorityclasses"]
+    resourceNames: [{{ .Values.priorityClass.name | quote }}]
+    verbs: ["get", "update", "patch"]
+  {{- end }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ $name }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ $name }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ $serviceAccount }}
+    namespace: {{ .Release.Namespace }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: telovix-release-controller
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: release-controller
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: telovix-release-controller
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: telovix-release-controller
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: release-controller
+    spec:
+      serviceAccountName: {{ $serviceAccount }}
+      automountServiceAccountToken: true
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: controller
+          image: {{ include "telovix-sensor.updaterImage" . }}
+          imagePullPolicy: {{ .Values.upgradeController.image.pullPolicy }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            readOnlyRootFilesystem: true
+            runAsUser: 65532
+            runAsGroup: 65532
+          env:
+            - name: HOME
+              value: /tmp
+            - name: TELOVIX_UPDATER_RUN_MODE
+              value: controller
+            - name: TELOVIX_UPDATER_CONSOLE_URL
+              value: {{ .Values.sensor.consoleUrl | quote }}
+            - name: TELOVIX_UPDATER_ENROLLMENT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "telovix-sensor.secretName" . }}
+                  key: enrollmentToken
+            - name: TELOVIX_UPDATER_CLUSTER_NAME
+              value: {{ .Values.clusterName | quote }}
+            - name: TELOVIX_UPDATER_INSTALL_ID
+              value: {{ printf "%s/%s" .Release.Namespace .Release.Name | sha256sum | trunc 32 | quote }}
+            - name: TELOVIX_UPDATER_RELEASE_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: TELOVIX_UPDATER_RELEASE_NAME
+              value: {{ .Release.Name | quote }}
+            - name: TELOVIX_UPDATER_MANAGEMENT_MODE
+              value: {{ $mode | quote }}
+            - name: TELOVIX_UPDATER_CHART_VERSION
+              value: {{ .Chart.Version | quote }}
+            - name: TELOVIX_UPDATER_SENSOR_VERSION
+              value: {{ $sensorTag | quote }}
+            - name: TELOVIX_UPDATER_SENSOR_FLAVOR
+              value: {{ .Values.flavor | quote }}
+            - name: TELOVIX_UPDATER_IDENTITY_SECRET
+              value: {{ $identitySecret | quote }}
+            - name: TELOVIX_UPDATER_IMAGE
+              value: {{ include "telovix-sensor.updaterImage" . | quote }}
+            - name: TELOVIX_UPDATER_SERVICE_ACCOUNT
+              value: {{ $serviceAccount | quote }}
+            - name: TELOVIX_UPDATER_POLL_SECONDS
+              value: {{ .Values.upgradeController.pollIntervalSeconds | quote }}
+            - name: TELOVIX_UPDATER_HELM_TIMEOUT_SECONDS
+              value: {{ .Values.upgradeController.helmTimeoutSeconds | quote }}
+            {{- if .Values.upgradeController.bootstrapCaSecret }}
+            - name: TELOVIX_UPDATER_BOOTSTRAP_CA_PATH
+              value: /var/run/telovix-bootstrap-ca/ca.crt
+            {{- end }}
+          resources:
+            {{- toYaml .Values.upgradeController.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            {{- if .Values.upgradeController.bootstrapCaSecret }}
+            - name: bootstrap-ca
+              mountPath: /var/run/telovix-bootstrap-ca
+              readOnly: true
+            {{- end }}
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 32Mi
+        {{- if .Values.upgradeController.bootstrapCaSecret }}
+        - name: bootstrap-ca
+          secret:
+            secretName: {{ .Values.upgradeController.bootstrapCaSecret }}
+            items:
+              - key: ca.crt
+                path: ca.crt
+        {{- end }}
+      {{- $pullSecret := include "telovix-sensor.pullSecretName" . }}
+      {{- if or $pullSecret .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- if $pullSecret }}
+        - name: {{ $pullSecret }}
+        {{- end }}
+        {{- with .Values.imagePullSecrets }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+{{- end }}
