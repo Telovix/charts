@@ -183,16 +183,6 @@ spec:
             {{- with .Values.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
-          lifecycle:
-            preStop:
-              exec:
-                # Self-decommission before Kubernetes sends SIGTERM.
-                # The sensor binary's --decommission flag reads mTLS certs from the
-                # state volume and calls /api/v1/sensors/self/decommission.
-                # Failure is non-fatal — the pod will still be removed.
-                command:
-                  - /usr/local/bin/telovix-sensor
-                  - --decommission
           readinessProbe:
             exec:
               command:

@@ -92,4 +92,11 @@ if grep -q 'resources: \["jobs"\]' <<<"${gitops}"; then
   exit 1
 fi
 
+for rendered in "${configured}" "${standard}" "${managed}" "${gitops}"; do
+  if grep -q -- '--decommission' <<<"${rendered}"; then
+    echo "Routine pod termination must not decommission the Console sensor identity." >&2
+    exit 1
+  fi
+done
+
 echo "Sensor chart upgrade compatibility checks passed."

@@ -354,9 +354,22 @@ helm uninstall telovix-sensor --namespace telovix
 kubectl delete namespace telovix
 ```
 
-> **Note:** Uninstalling removes pods and Kubernetes resources but does NOT delete `/var/lib/telovix-sensor` on the host nodes. Sensor certificates and state persist on disk. If you reinstall later, re-enrollment happens automatically.
+Uninstalling stops collection and removes the Kubernetes resources. Sensor records
+remain in the Console fleet and become offline. Remove them explicitly from the
+Console when retiring the deployment. Rolling upgrades, pod restarts, and node
+drains do not uninstall the sensor identity.
+
+> **Note:** Uninstalling does not delete `/var/lib/telovix-sensor` on the host nodes.
+> Certificates and state persist on disk. Reinstalling reuses the existing identity
+> while it remains valid in the Console.
 >
 > To fully wipe sensor identity from a node: `rm -rf /var/lib/telovix-sensor` on that node.
+
+When upgrading from a chart that includes a `preStop --decommission` hook, the
+existing pods retain that hook until they are replaced. Removing it from the new
+template does not change those running pods. Disable the old hook before the first
+rollout to preserve their Console records. Subsequent rollouts use the corrected
+template.
 
 
 ## Platform Notes
