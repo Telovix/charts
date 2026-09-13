@@ -93,10 +93,19 @@ if grep -q 'resources: \["jobs"\]' <<<"${gitops}"; then
 fi
 
 for rendered in "${configured}" "${standard}" "${managed}" "${gitops}"; do
+  if ! grep -q 'resources: \["networkpolicies", "ingresses"\]' <<<"${rendered}"; then
+    echo "Sensor inventory must be able to read NetworkPolicies and Ingresses." >&2
+    exit 1
+  fi
   if grep -q -- '--decommission' <<<"${rendered}"; then
     echo "Routine pod termination must not decommission the Console sensor identity." >&2
     exit 1
   fi
 done
+
+if [[ $(grep -c 'resources: \["networkpolicies", "ingresses"\]' <<<"${managed}") -ne 2 ]]; then
+  echo "Managed updater must hold the same read-only inventory permissions as the sensor." >&2
+  exit 1
+fi
 
 echo "Sensor chart upgrade compatibility checks passed."
