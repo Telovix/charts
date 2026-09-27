@@ -6,6 +6,8 @@ metadata:
     {{- include "telovix-console.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       {{- include "telovix-console.selectorLabels" . | nindent 6 }}
@@ -22,14 +24,29 @@ spec:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
         - name: console
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          image: "{{ .Values.image.repository }}{{ if .Values.image.digest }}@{{ .Values.image.digest }}{{ else }}:{{ .Values.image.tag }}{{ end }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
             - name: http
-              containerPort: {{ .Values.service.httpPort }}
-            - name: sensor
-              containerPort: {{ .Values.service.sensorPort }}
+              containerPort: 15483
           env:
+            {{- if .Values.selfHostedBootstrap.secretName }}
+            {{- if ne .Values.deploymentMode "self_hosted" }}{{ fail "selfHostedBootstrap requires deploymentMode=self_hosted" }}{{ end }}
+            {{- if not .Values.persistence.enabled }}{{ fail "selfHostedBootstrap requires persistent state for replay protection" }}{{ end }}
+            - name: TELOVIX_CONSOLE_SELF_HOSTED_BOOTSTRAP_FILE
+              value: /run/telovix-bootstrap/bootstrap.json
+            {{- end }}
+            - name: TELOVIX_CONSOLE_SENSOR_TLS_PORT
+              value: "15483"
+            - name: AUTH_COOKIE_SECURE
+              value: "true"
+            {{- if eq .Values.deploymentMode "self_hosted" }}
+            - name: TELOVIX_CONSOLE_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "telovix-console.fullname" . }}-secret
+                  key: CONSOLE_ID
+            {{- end }}
             # ── Core ──────────────────────────────────────────────────────────
             - name: TELOVIX_CONSOLE_DEPLOYMENT_MODE
               value: {{ .Values.deploymentMode | quote }}
@@ -51,7 +68,7 @@ spec:
 
             # ── ClickHouse ────────────────────────────────────────────────────
             - name: TELOVIX_CONSOLE_CLICKHOUSE_URL
-              value: {{ .Values.clickhouse.url | quote }}
+              value: {{ if .Values.bundledDatabases.enabled }}{{ printf "http://%s-clickhouse:8123" (include "telovix-console.fullname" .) | quote }}{{ else }}{{ .Values.clickhouse.url | quote }}{{ end }}
             - name: TELOVIX_CONSOLE_CLICKHOUSE_DATABASE
               value: {{ .Values.clickhouse.database | quote }}
             - name: TELOVIX_CONSOLE_CLICKHOUSE_USER
@@ -117,7 +134,7 @@ spec:
             {{- end }}
 
             # ── Managed IDs ───────────────────────────────────────────────────
-            {{- if .Values.managed.consoleId }}
+            {{- if and (eq .Values.deploymentMode "managed") .Values.managed.consoleId }}
             - name: TELOVIX_CONSOLE_ID
               value: {{ .Values.managed.consoleId | quote }}
             {{- end }}
@@ -245,6 +262,11 @@ spec:
             {{- end }}
 
           volumeMounts:
+            {{- if .Values.selfHostedBootstrap.secretName }}
+            - name: self-hosted-bootstrap
+              mountPath: /run/telovix-bootstrap
+              readOnly: true
+            {{- end }}
             - name: data
               mountPath: {{ .Values.persistence.mountPath }}
             {{- if .Values.sensorTls.secretName }}
@@ -253,16 +275,25 @@ spec:
               readOnly: true
             {{- end }}
 
+          startupProbe:
+            httpGet:
+              path: /healthz
+              port: http
+              scheme: HTTPS
+            periodSeconds: 5
+            failureThreshold: 120
           livenessProbe:
             httpGet:
               path: /healthz
               port: http
+              scheme: HTTPS
             initialDelaySeconds: 45
             periodSeconds: 30
           readinessProbe:
             httpGet:
-              path: /readyz
+              path: {{ .Values.readinessPath }}
               port: http
+              scheme: HTTPS
             initialDelaySeconds: 20
             periodSeconds: 10
 
@@ -277,6 +308,15 @@ spec:
                 - ALL
 
       volumes:
+        {{- if .Values.selfHostedBootstrap.secretName }}
+        - name: self-hosted-bootstrap
+          secret:
+            secretName: {{ .Values.selfHostedBootstrap.secretName | quote }}
+            defaultMode: 0440
+            items:
+              - key: bootstrap.json
+                path: bootstrap.json
+        {{- end }}
         - name: data
           {{- if .Values.persistence.enabled }}
           persistentVolumeClaim:

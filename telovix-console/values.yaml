@@ -3,7 +3,8 @@
 
 image:
   repository: registry.gitlab.com/telovix/console
-  tag: "latest"
+  tag: "edge"
+  digest: ""
   pullPolicy: IfNotPresent
 
 imagePullSecrets: []
@@ -18,15 +19,37 @@ platformVertical: standard
 
 replicaCount: 1
 
+# Customer-owned Secret containing schema_version=1 bootstrap.json, not managed bootstrap.
+selfHostedBootstrap:
+  secretName: ""
+
+selfHosted:
+  # Leave empty to generate a stable ID in the release Secret before licensing.
+  consoleId: ""
+
+# Single-node storage for self-hosted installations; external databases remain supported.
+bundledDatabases:
+  enabled: false
+  postgresImage: dhi.io/postgres:18-alpine3.23
+  clickhouseImage: dhi.io/clickhouse-server:26.4
+  storageClass: ""
+  postgresSize: 20Gi
+  clickhouseSize: 100Gi
+
+# /readyz intentionally fails before the setup wizard completes. Use /healthz
+# for routing readiness until setup, then optionally switch to /readyz.
+readinessPath: /healthz
+
 service:
   type: ClusterIP
   httpPort: 15483
-  sensorPort: 15484
 
 ingress:
-  enabled: true
+  enabled: false
   className: nginx
   annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+    nginx.ingress.kubernetes.io/ssl-passthrough: "true"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
   hosts:
@@ -147,9 +170,10 @@ resources:
     memory: 1Gi
 
 podSecurityContext:
-  fsGroup: 1001
+  fsGroup: 65532
   runAsNonRoot: true
-  runAsUser: 1001
+  runAsUser: 65532
+  runAsGroup: 65532
 
 nameOverride: ""
 fullnameOverride: ""

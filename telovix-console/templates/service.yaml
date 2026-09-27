@@ -11,9 +11,5 @@ spec:
       targetPort: http
       protocol: TCP
       name: http
-    - port: {{ .Values.service.sensorPort }}
-      targetPort: sensor
-      protocol: TCP
-      name: sensor
   selector:
     {{- include "telovix-console.selectorLabels" . | nindent 4 }}

@@ -1,0 +1,111 @@
+{{- if .Values.bundledDatabases.enabled }}
+{{- $name := include "telovix-console.fullname" . }}
+{{- if ne (int .Values.replicaCount) 1 }}{{ fail "Bundled databases support one Console replica" }}{{ end }}
+{{- range $kind := list "postgres" "clickhouse" }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}-{{ $kind }}
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/instance: {{ $.Release.Name }}
+    app.kubernetes.io/component: {{ $kind }}
+  ports:
+    - name: database
+      port: {{ if eq $kind "postgres" }}5432{{ else }}8123{{ end }}
+      targetPort: database
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ $name }}-{{ $kind }}
+spec:
+  serviceName: {{ $name }}-{{ $kind }}
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ $.Release.Name }}
+      app.kubernetes.io/component: {{ $kind }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: {{ $.Release.Name }}
+        app.kubernetes.io/component: {{ $kind }}
+    spec:
+      {{- with $.Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        runAsUser: {{ if eq $kind "postgres" }}70{{ else }}101{{ end }}
+        runAsGroup: {{ if eq $kind "postgres" }}70{{ else }}101{{ end }}
+        fsGroup: {{ if eq $kind "postgres" }}70{{ else }}101{{ end }}
+        fsGroupChangePolicy: OnRootMismatch
+      containers:
+        - name: {{ $kind }}
+          image: {{ if eq $kind "postgres" }}{{ $.Values.bundledDatabases.postgresImage | quote }}{{ else }}{{ $.Values.bundledDatabases.clickhouseImage | quote }}{{ end }}
+          ports:
+            - name: database
+              containerPort: {{ if eq $kind "postgres" }}5432{{ else }}8123{{ end }}
+          env:
+            {{- if eq $kind "postgres" }}
+            - name: POSTGRES_DB
+              value: telovix_console
+            - name: POSTGRES_USER
+              value: telovix_console
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $name }}-secret
+                  key: POSTGRES_PASSWORD
+            {{- else }}
+            - name: CLICKHOUSE_DB
+              value: {{ $.Values.clickhouse.database | quote }}
+            - name: CLICKHOUSE_USER
+              value: {{ $.Values.clickhouse.user | quote }}
+            - name: CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT
+              value: "1"
+            - name: CLICKHOUSE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $name }}-secret
+                  key: CLICKHOUSE_PASSWORD
+            {{- end }}
+          readinessProbe:
+            {{- if eq $kind "postgres" }}
+            exec:
+              command: [pg_isready, -U, telovix_console, -d, telovix_console]
+            {{- else }}
+            httpGet:
+              path: /ping
+              port: database
+            {{- end }}
+          volumeMounts:
+            - name: data
+              mountPath: {{ if eq $kind "postgres" }}/var/lib/postgresql/data{{ else }}/var/lib/clickhouse{{ end }}
+            {{- if eq $kind "postgres" }}
+            - name: run
+              mountPath: /var/run/postgresql
+            {{- end }}
+      {{- if eq $kind "postgres" }}
+      volumes:
+        - name: run
+          emptyDir: {}
+      {{- end }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ReadWriteOnce]
+        {{- if $.Values.bundledDatabases.storageClass }}
+        storageClassName: {{ $.Values.bundledDatabases.storageClass | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ if eq $kind "postgres" }}{{ $.Values.bundledDatabases.postgresSize }}{{ else }}{{ $.Values.bundledDatabases.clickhouseSize }}{{ end }}
+{{- end }}
+{{- end }}
