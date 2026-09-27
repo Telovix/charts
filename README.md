@@ -1,5 +1,14 @@
 
-# Telovix Sensor - Helm Chart
+# Telovix Helm Charts
+
+| Chart | Purpose | Installation guide |
+|---|---|---|
+| `telovix-console` | Self-hosted Console, with external or bundled PostgreSQL and ClickHouse | [Console installation](telovix-console/README.md) |
+| `telovix-sensor` | eBPF sensors deployed to Kubernetes nodes | [Sensor installation](#quick-start) |
+
+Both charts are published at `https://telovix.github.io/charts`.
+
+## Sensor deployment
 
 [![Helm](https://img.shields.io/badge/helm-3.8%2B-blue)](https://helm.sh)
 [![Kubernetes](https://img.shields.io/badge/kubernetes-1.21%2B-blue)](https://kubernetes.io)

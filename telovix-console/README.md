@@ -24,9 +24,11 @@ serves the operator API, embedded web UI and sensor mTLS on one HTTPS listener, 
 PostgreSQL stores transactional Console state. ClickHouse stores analytics and runtime event data.
 Both are required for a functional deployment.
 
-Chart **1.1.0** adds these settings; do not pass them to published chart 1.0.0.
-Publish 1.1.0 before setting the Portal chart-version configuration. The chart
-does not claim an application version change. Its default image tag is `edge`.
+Chart **1.1.0** adds bundled storage and self-hosted bootstrap settings; chart
+1.0.0 does not support them. The chart version is separate from the Console
+application version. Its default image tag is `edge`; use a qualified image
+digest for deployment. Preconfigured setup requires a Console image that supports
+self-hosted bootstrap, not just the new chart.
 
 Bundled storage is opt-in; Portal-generated values enable it. Configure
 `imagePullSecrets` for both registries and a default StorageClass (or set
@@ -76,7 +78,10 @@ self-hosted sensor mTLS. Direct TLS exposure is another option.
 Create a values override file with your database, analytics, hostname, and TLS settings, then install:
 
 ```bash
-helm install telovix-console ./charts/telovix-console \
+helm repo add telovix https://telovix.github.io/charts
+helm repo update telovix
+helm install telovix-console telovix/telovix-console \
+  --version 1.1.0 \
   --namespace telovix \
   --create-namespace \
   -f values-override.yaml

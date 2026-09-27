@@ -3,6 +3,28 @@ entries:
   telovix-console:
   - apiVersion: v2
     appVersion: 1.0.0
+    created: "2026-09-27T15:37:29.028960941+09:00"
+    description: Telovix Console - eBPF security platform for 5G/Open RAN environments
+    digest: 6aec974dfe41acfa8876fa9f674265bc698d60a6af4229210da5f0014ca94c94
+    home: https://telovix.com
+    keywords:
+    - security
+    - ebpf
+    - telecom
+    - 5g
+    - oran
+    maintainers:
+    - email: engineering@telovix.com
+      name: Telovix
+    name: telovix-console
+    sources:
+    - https://gitlab.com/telovix/console
+    type: application
+    urls:
+    - https://telovix.github.io/charts/telovix-console-1.1.0.tgz
+    version: 1.1.0
+  - apiVersion: v2
+    appVersion: 1.0.0
     created: "2026-08-31T13:55:32.232023376+09:00"
     description: Telovix Console - eBPF security platform for 5G/Open RAN environments
     digest: bf200f8a5933636931d080e1042e4c13200126332b8a24b07bdfd5772c740d3d
@@ -1284,4 +1306,4 @@ entries:
     urls:
     - https://telovix.github.io/charts/telovix-sensor-1.0.0.tgz
     version: 1.0.0
-generated: "2026-09-24T15:06:47.602391864+09:00"
+generated: "2026-09-27T15:37:29.027800426+09:00"
