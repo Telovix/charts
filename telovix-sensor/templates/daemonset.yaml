@@ -1,5 +1,7 @@
 {{- $sensorValues := .Values.sensor | default dict -}}
 {{- $telecomCapture := get $sensorValues "telecomCapture" | default dict -}}
+{{- $captureDelivery := .Values.captureDelivery | default dict -}}
+{{- $split := get $captureDelivery "enabled" | default false -}}
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -22,8 +24,13 @@ spec:
         {{- toYaml . | nindent 8 }}
         {{- end }}
       annotations:
+        {{- if $split }}
+        checksum/config: {{ get (include (print $.Template.BasePath "/configmap.yaml") . | fromYaml) "data" | toJson | sha256sum }}
+        checksum/enrollment: {{- if .Values.sensor.existingSecret }} {{ .Values.sensor.existingSecret | sha256sum }}{{- else }} {{ get (include (print $.Template.BasePath "/secret.yaml") . | fromYaml) "data" | toJson | sha256sum }}{{- end }}
+        {{- else }}
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
         checksum/enrollment: {{- if .Values.sensor.existingSecret }} {{ .Values.sensor.existingSecret | sha256sum }}{{- else }} {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}{{- end }}
+        {{- end }}
         {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -62,8 +69,8 @@ spec:
       {{- end }}
       initContainers:
         - name: bpf-init
-          image: {{ include "telovix-sensor.image" . }}
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          image: {{ include "telovix-sensor.captureImage" . }}
+          imagePullPolicy: {{ ternary "IfNotPresent" .Values.image.pullPolicy $split }}
           command:
             - /bin/sh
             - -c
@@ -74,6 +81,7 @@ spec:
               if ! mountpoint -q /host-bpf 2>/dev/null; then
                 mount -t bpf bpffs /host-bpf || true
               fi
+              {{- if not $split }}
               rm -rf /host-bpf/telovix-sensor /host-bpf/telovix || true
 
               # ── Stale-credential detection ──────────────────────────────────
@@ -106,6 +114,7 @@ spec:
                       /sensor-state/sensor-state.json
                 echo "${TOKEN_HASH}" > /sensor-state/.enrollment-token-hash
               fi
+              {{- end }}
 
               echo "[telovix] BPF filesystem ready"
           env:
@@ -125,8 +134,11 @@ spec:
               mountPath: /sensor-state
       containers:
         - name: telovix-sensor
-          image: {{ include "telovix-sensor.image" . }}
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          image: {{ include "telovix-sensor.captureImage" . }}
+          imagePullPolicy: {{ ternary "IfNotPresent" .Values.image.pullPolicy $split }}
+          {{- if $split }}
+          args: ["--capture-owner"]
+          {{- end }}
           env:
             - name: TELOVIX_CONSOLE_URL
               valueFrom:

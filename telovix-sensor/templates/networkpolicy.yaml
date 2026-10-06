@@ -14,8 +14,17 @@ metadata:
       policies (Cilium, Calico). Verify enforcement with your CNI before certification submission.
 spec:
   podSelector:
+    {{- if get (.Values.captureDelivery | default dict) "enabled" }}
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+    matchExpressions:
+      - key: app.kubernetes.io/component
+        operator: In
+        values: [sensor, delivery-worker]
+    {{- else }}
     matchLabels:
       {{- include "telovix-sensor.selectorLabels" . | nindent 6 }}
+    {{- end }}
   policyTypes:
     - Ingress
     - Egress

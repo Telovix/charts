@@ -73,6 +73,23 @@ Appends "-telecom" to the tag when flavor is "telecom":
 {{- end }}
 {{- end }}
 
+{{/* Owner image is independent of the worker release and chart AppVersion. */}}
+{{- define "telovix-sensor.captureImage" -}}
+{{- $capture := .Values.captureDelivery | default dict -}}
+{{- if get $capture "enabled" -}}
+{{- $image := required "captureDelivery.ownerImage must pin the capture owner by digest" (get $capture "ownerImage") -}}
+{{- if not (regexMatch "^[^[:space:]]+@sha256:[a-f0-9]{64}$" $image) -}}
+{{- fail "captureDelivery.ownerImage must be an immutable sha256 image reference" -}}
+{{- end -}}
+{{- if .Values.upgradeController.enabled -}}
+{{- fail "captureDelivery requires upgradeController.enabled=false until component upgrade receipts are supported" -}}
+{{- end -}}
+{{- $image -}}
+{{- else -}}
+{{- include "telovix-sensor.image" . -}}
+{{- end -}}
+{{- end -}}
+
 {{/* Release-controller resource names and image. */}}
 {{- define "telovix-sensor.updaterName" -}}
 {{- printf "%s-updater" (include "telovix-sensor.fullname" .) | trunc 63 | trimSuffix "-" }}
