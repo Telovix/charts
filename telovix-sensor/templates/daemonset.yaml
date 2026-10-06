@@ -100,6 +100,7 @@ spec:
                 echo "[telovix] enrollment token changed — clearing stale credentials for fresh enrollment"
                 rm -f /sensor-state/client.key.pem \
                       /sensor-state/client-credentials.json \
+                      /sensor-state/certificate-renewal.json \
                       /sensor-state/client.cert.pem \
                       /sensor-state/console-ca.cert.pem \
                       /sensor-state/sensor-state.json
