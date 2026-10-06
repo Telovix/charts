@@ -93,6 +93,10 @@ if grep -q 'resources: \["jobs"\]' <<<"${gitops}"; then
 fi
 
 for rendered in "${configured}" "${standard}" "${managed}" "${gitops}"; do
+  if ! grep -q '/sensor-state/client-credentials.json' <<<"${rendered}"; then
+    echo "Changed enrollment tokens must clear the coherent credential bundle." >&2
+    exit 1
+  fi
   if ! grep -q 'resources: \["networkpolicies", "ingresses"\]' <<<"${rendered}"; then
     echo "Sensor inventory must be able to read NetworkPolicies and Ingresses." >&2
     exit 1
