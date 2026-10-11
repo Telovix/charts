@@ -43,6 +43,20 @@ def daemonsets(result):
 
 
 class CaptureDeliveryTests(unittest.TestCase):
+    def test_split_owner_readiness_and_replacement_are_independent_of_worker(self):
+        owner = daemonsets(render())["test-telovix-sensor"]
+        self.assertEqual(owner["spec"]["updateStrategy"], {"type": "OnDelete"})
+        container = owner["spec"]["template"]["spec"]["containers"][0]
+        self.assertEqual(container["readinessProbe"]["exec"]["command"], [
+            "/usr/local/bin/telovix-sensor", "--capture-owner-readiness",
+        ])
+        self.assertEqual(container["readinessProbe"]["timeoutSeconds"], 5)
+        legacy = daemonsets(render(split=False))["test-telovix-sensor"]
+        self.assertEqual(legacy["spec"]["updateStrategy"]["type"], "RollingUpdate")
+        self.assertEqual(legacy["spec"]["template"]["spec"]["containers"][0]["readinessProbe"]["exec"]["command"], [
+            "/bin/sh", "-ec", "test -s /var/lib/telovix-sensor/.sensor-ready",
+        ])
+
     def test_worker_release_leaves_owner_template_and_spec_unchanged(self):
         before = daemonsets(render("image.tag=1.0.64"))
         after = daemonsets(render("image.tag=1.0.65"))

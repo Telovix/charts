@@ -15,7 +15,11 @@ spec:
     matchLabels:
       {{- include "telovix-sensor.selectorLabels" . | nindent 6 }}
   updateStrategy:
+    {{- if $split }}
+    type: OnDelete
+    {{- else }}
     {{- toYaml .Values.updateStrategy | nindent 4 }}
+    {{- end }}
   template:
     metadata:
       labels:
@@ -200,11 +204,20 @@ spec:
           readinessProbe:
             exec:
               command:
+                {{- if $split }}
+                - /usr/local/bin/telovix-sensor
+                - --capture-owner-readiness
+                {{- else }}
                 - /bin/sh
                 - -ec
                 - test -s /var/lib/telovix-sensor/.sensor-ready
+                {{- end }}
             periodSeconds: 10
+            {{- if $split }}
+            timeoutSeconds: 5
+            {{- else }}
             timeoutSeconds: 1
+            {{- end }}
             successThreshold: 1
             failureThreshold: 1
           resources:
