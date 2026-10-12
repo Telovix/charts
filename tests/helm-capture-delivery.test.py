@@ -43,6 +43,27 @@ def daemonsets(result):
 
 
 class CaptureDeliveryTests(unittest.TestCase):
+    def test_only_managed_controller_can_persist_job_results(self):
+        for mode in ("managed", "flux", "argocd"):
+            documents = manifests(render(
+                "upgradeController.enabled=true",
+                "upgradeController.managementMode=" + mode,
+                "sensor.consoleUrl=https://console.example.test",
+                "clusterName=qualification",
+                split=False,
+            ))
+            role = next(document for document in documents
+                        if document["kind"] == "Role"
+                        and document["metadata"]["name"].endswith("-updater"))
+            job_rules = [rule for rule in role["rules"]
+                         if rule.get("apiGroups") == ["batch"]
+                         and "jobs" in rule["resources"]]
+            if mode == "managed":
+                self.assertEqual(len(job_rules), 1)
+                self.assertIn("patch", job_rules[0]["verbs"])
+            else:
+                self.assertEqual(job_rules, [])
+
     def test_split_mode_rejects_an_owner_without_host_pid_visibility(self):
         rejected = render("hostPID=false")
         self.assertNotEqual(rejected.returncode, 0)
