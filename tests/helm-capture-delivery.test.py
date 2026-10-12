@@ -54,6 +54,30 @@ class CaptureDeliveryTests(unittest.TestCase):
         self.assertTrue(controller["metadata"]["name"].endswith("-updater"))
         self.assertLessEqual(len(controller["metadata"]["name"]), 63)
 
+    def test_controller_identity_is_runtime_owned_not_part_of_helm_rollback(self):
+        for mode in ("managed", "flux", "argocd"):
+            documents = manifests(render(
+                "upgradeController.enabled=true", "upgradeController.managementMode=" + mode,
+                "sensor.consoleUrl=https://console.example.test", "clusterName=qualification",
+                split=False,
+            ))
+            deployment = next(item for item in documents if item["kind"] == "Deployment")
+            self.assertEqual(deployment["metadata"]["labels"]["telovix.com/release-name"], "test")
+            env = {item["name"]: item.get("value") for item in
+                   deployment["spec"]["template"]["spec"]["containers"][0]["env"]}
+            identity = env["TELOVIX_UPDATER_IDENTITY_SECRET"]
+            self.assertFalse(any(item["kind"] == "Secret" and item["metadata"]["name"] == identity
+                                 for item in documents))
+            self.assertEqual(env["TELOVIX_UPDATER_CONTROLLER_WORKLOAD"], deployment["metadata"]["name"])
+            role = next(item for item in documents if item["kind"] == "Role"
+                        and item["metadata"]["name"] == deployment["metadata"]["name"])
+            self.assertTrue(any(rule["apiGroups"] == [""] and rule["resources"] == ["secrets"]
+                                and rule["verbs"] == ["create"] and "resourceNames" not in rule
+                                for rule in role["rules"]))
+            self.assertTrue(any(rule["apiGroups"] == ["apps"] and rule["resources"] == ["deployments"]
+                                and rule.get("resourceNames") == [deployment["metadata"]["name"]]
+                                and rule["verbs"] == ["get"] for rule in role["rules"]))
+
     def test_managed_controller_can_watch_owner_resources_without_sensor_rbac(self):
         for mode in ("managed", "flux", "argocd"):
             documents = manifests(render(

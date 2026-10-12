@@ -18,7 +18,6 @@
 {{- $name := include "telovix-sensor.updaterName" . }}
 {{- $serviceAccount := include "telovix-sensor.updaterServiceAccountName" . }}
 {{- $identitySecret := include "telovix-sensor.updaterIdentitySecretName" . }}
-{{- $existingIdentity := lookup "v1" "Secret" .Release.Namespace $identitySecret }}
 {{- $sensorTag := .Values.image.tag | default .Chart.AppVersion }}
 {{- if .Values.upgradeController.serviceAccount.create }}
 apiVersion: v1
@@ -37,22 +36,6 @@ metadata:
 automountServiceAccountToken: true
 ---
 {{- end }}
-apiVersion: v1
-kind: Secret
-metadata:
-  name: {{ $identitySecret }}
-  namespace: {{ .Release.Namespace }}
-  labels:
-    app.kubernetes.io/name: telovix-release-controller
-    app.kubernetes.io/instance: {{ .Release.Name }}
-    app.kubernetes.io/component: release-controller
-type: Opaque
-data:
-  {{- if and $existingIdentity $existingIdentity.data }}
-  {{- toYaml $existingIdentity.data | nindent 2 }}
-  {{- else }} {}
-  {{- end }}
----
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -61,8 +44,15 @@ metadata:
 rules:
   - apiGroups: [""]
     resources: ["secrets"]
+    verbs: ["create"]
+  - apiGroups: [""]
+    resources: ["secrets"]
     resourceNames: [{{ $identitySecret | quote }}]
     verbs: ["get", "patch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    resourceNames: [{{ $name | quote }}]
+    verbs: ["get"]
   {{- if eq $mode "managed" }}
   - apiGroups: [""]
     resources: ["configmaps", "secrets", "serviceaccounts", "services"]
@@ -174,6 +164,7 @@ metadata:
     app.kubernetes.io/name: telovix-release-controller
     app.kubernetes.io/instance: {{ .Release.Name }}
     app.kubernetes.io/component: release-controller
+    telovix.com/release-name: {{ .Release.Name | quote }}
 spec:
   replicas: 1
   strategy:
@@ -242,6 +233,8 @@ spec:
               value: {{ printf "%s-delivery" (include "telovix-sensor.fullname" . | trunc 54 | trimSuffix "-") | quote }}
             - name: TELOVIX_UPDATER_IDENTITY_SECRET
               value: {{ $identitySecret | quote }}
+            - name: TELOVIX_UPDATER_CONTROLLER_WORKLOAD
+              value: {{ $name | quote }}
             - name: TELOVIX_UPDATER_IMAGE
               value: {{ include "telovix-sensor.updaterImage" . | quote }}
             - name: TELOVIX_UPDATER_SERVICE_ACCOUNT
