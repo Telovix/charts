@@ -43,6 +43,17 @@ def daemonsets(result):
 
 
 class CaptureDeliveryTests(unittest.TestCase):
+    def test_long_controller_names_do_not_collide_with_sensor_resources(self):
+        documents = manifests(render(
+            "fullnameOverride=" + "a" * 63, "upgradeController.enabled=true",
+            "sensor.consoleUrl=https://console.example.test", "clusterName=qualification", split=False))
+        identities = [(item["apiVersion"], item["kind"], item["metadata"].get("namespace", ""),
+                       item["metadata"]["name"]) for item in documents]
+        self.assertEqual(len(identities), len(set(identities)))
+        controller = next(item for item in documents if item["kind"] == "Deployment")
+        self.assertTrue(controller["metadata"]["name"].endswith("-updater"))
+        self.assertLessEqual(len(controller["metadata"]["name"]), 63)
+
     def test_managed_controller_can_watch_owner_resources_without_sensor_rbac(self):
         for mode in ("managed", "flux", "argocd"):
             documents = manifests(render(

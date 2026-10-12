@@ -92,7 +92,7 @@ Appends "-telecom" to the tag when flavor is "telecom":
 
 {{/* Release-controller resource names and image. */}}
 {{- define "telovix-sensor.updaterName" -}}
-{{- printf "%s-updater" (include "telovix-sensor.fullname" .) | trunc 63 | trimSuffix "-" }}
+{{- printf "%s-updater" (include "telovix-sensor.fullname" . | trunc 55 | trimSuffix "-") }}
 {{- end }}
 
 {{- define "telovix-sensor.updaterServiceAccountName" -}}
