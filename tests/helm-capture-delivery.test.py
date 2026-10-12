@@ -113,6 +113,24 @@ class CaptureDeliveryTests(unittest.TestCase):
         self.assertEqual(worker_before["containers"][0]["args"], ["--delivery-worker"])
         self.assertEqual(after["test-telovix-sensor"]["spec"]["template"]["spec"]["containers"][0]["image"], OWNER_IMAGE)
 
+    def test_same_chart_worker_digest_changes_only_the_worker_resource(self):
+        settings = ("sensor.enrollmentToken=qualification-token",
+                    "sensor.consoleUrl=https://console.example.test", "clusterName=qualification",
+                    "networkPolicy.enabled=true")
+        def resources(result):
+            return {(item["apiVersion"], item["kind"], item["metadata"].get("namespace", ""),
+                     item["metadata"]["name"]): item for item in manifests(result)}
+        before = resources(render(*settings, "image.digest=sha256:" + "b" * 64))
+        after = resources(render(*settings, "image.digest=sha256:" + "c" * 64))
+        self.assertEqual(set(before), set(after))
+        worker_key = ("apps/v1", "DaemonSet", "telovix-system", "test-telovix-sensor-delivery")
+        worker_before = before.pop(worker_key)
+        worker_after = after.pop(worker_key)
+        self.assertEqual(before, after)
+        worker_before["spec"]["template"]["spec"]["containers"][0]["image"] = (
+            "registry.gitlab.com/telovix/sensor@sha256:" + "c" * 64)
+        self.assertEqual(worker_before, worker_after)
+
     def test_worker_digest_resources_and_pull_policy_do_not_roll_owner(self):
         before = daemonsets(render())
         after = daemonsets(render(
