@@ -43,6 +43,23 @@ def daemonsets(result):
 
 
 class CaptureDeliveryTests(unittest.TestCase):
+    def test_managed_controller_can_watch_owner_resources_without_sensor_rbac(self):
+        for mode in ("managed", "flux", "argocd"):
+            documents = manifests(render(
+                "upgradeController.enabled=true", "upgradeController.managementMode=" + mode,
+                "sensor.consoleUrl=https://console.example.test", "clusterName=qualification",
+                "rbac.create=false", "rbac.clusterWide=false", split=False,
+            ))
+            role = next(item for item in documents if item["kind"] == "Role"
+                        and item["metadata"]["name"].endswith("-updater"))
+            self.assertEqual(role["metadata"]["namespace"], "telovix-system")
+            watched = {(group, resource) for rule in role["rules"] if "watch" in rule["verbs"]
+                       for group in rule["apiGroups"] for resource in rule["resources"]}
+            expected = {
+                ("", "configmaps"), ("", "secrets"), ("", "serviceaccounts"),
+                ("", "pods"), ("apps", "daemonsets")} if mode == "managed" else set()
+            self.assertEqual(watched, expected)
+
     def test_controller_uses_exact_workload_names_for_observation(self):
         for name in ("custom-owner", "a" * 63):
             documents = manifests(render(
