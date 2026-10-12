@@ -43,6 +43,13 @@ def daemonsets(result):
 
 
 class CaptureDeliveryTests(unittest.TestCase):
+    def test_split_mode_rejects_an_owner_without_host_pid_visibility(self):
+        rejected = render("hostPID=false")
+        self.assertNotEqual(rejected.returncode, 0)
+        self.assertIn("captureDelivery.enabled requires hostPID=true", rejected.stderr)
+        legacy = daemonsets(render("hostPID=false", split=False))["test-telovix-sensor"]
+        self.assertFalse(legacy["spec"]["template"]["spec"]["hostPID"])
+
     def test_split_owner_readiness_and_replacement_are_independent_of_worker(self):
         owner = daemonsets(render())["test-telovix-sensor"]
         self.assertEqual(owner["spec"]["updateStrategy"], {"type": "OnDelete"})

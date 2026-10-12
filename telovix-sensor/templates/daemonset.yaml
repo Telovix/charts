@@ -2,6 +2,9 @@
 {{- $telecomCapture := get $sensorValues "telecomCapture" | default dict -}}
 {{- $captureDelivery := .Values.captureDelivery | default dict -}}
 {{- $split := get $captureDelivery "enabled" | default false -}}
+{{- if and $split (not .Values.hostPID) -}}
+{{- fail "captureDelivery.enabled requires hostPID=true for capture-owner visibility of delivery-worker peer PIDs" -}}
+{{- end -}}
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
