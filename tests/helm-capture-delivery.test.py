@@ -141,6 +141,21 @@ class CaptureDeliveryTests(unittest.TestCase):
         self.assertEqual(before["test-telovix-sensor"]["spec"], after["test-telovix-sensor"]["spec"])
         self.assertNotEqual(before["test-telovix-sensor-delivery"]["spec"], after["test-telovix-sensor-delivery"]["spec"])
 
+    def test_owner_enrollment_checksum_tracks_token_without_chart_metadata(self):
+        first = daemonsets(render("sensor.enrollmentToken=first-token"))["test-telovix-sensor"]
+        second = daemonsets(render("sensor.enrollmentToken=second-token"))["test-telovix-sensor"]
+        def checksum(owner):
+            return owner["spec"]["template"]["metadata"]["annotations"]["checksum/enrollment"]
+        self.assertNotEqual(checksum(first), checksum(second))
+        with tempfile.TemporaryDirectory(prefix="telovix-enrollment-chart-") as directory:
+            chart = Path(directory) / "chart"
+            shutil.copytree(CHART, chart)
+            metadata = yaml.safe_load((chart / "Chart.yaml").read_text())
+            metadata.update(version="1.0.65", appVersion="1.0.65")
+            (chart / "Chart.yaml").write_text(yaml.safe_dump(metadata))
+            upgraded = daemonsets(render("sensor.enrollmentToken=first-token", chart=chart))["test-telovix-sensor"]
+        self.assertEqual(first["spec"], upgraded["spec"])
+
     def test_worker_cannot_initialize_capture_or_write_owner_state(self):
         workloads = daemonsets(render())
         owner = workloads["test-telovix-sensor"]["spec"]["template"]["spec"]

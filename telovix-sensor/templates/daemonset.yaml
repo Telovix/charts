@@ -33,7 +33,7 @@ spec:
       annotations:
         {{- if $split }}
         checksum/config: {{ get (include (print $.Template.BasePath "/configmap.yaml") . | fromYaml) "data" | toJson | sha256sum }}
-        checksum/enrollment: {{- if .Values.sensor.existingSecret }} {{ .Values.sensor.existingSecret | sha256sum }}{{- else }} {{ get (include (print $.Template.BasePath "/secret.yaml") . | fromYaml) "data" | toJson | sha256sum }}{{- end }}
+        checksum/enrollment: {{- if .Values.sensor.existingSecret }} {{ .Values.sensor.existingSecret | sha256sum }}{{- else }} {{ get (include (print $.Template.BasePath "/secret.yaml") . | fromYaml) "stringData" | toJson | sha256sum }}{{- end }}
         {{- else }}
         checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
         checksum/enrollment: {{- if .Values.sensor.existingSecret }} {{ .Values.sensor.existingSecret | sha256sum }}{{- else }} {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}{{- end }}
