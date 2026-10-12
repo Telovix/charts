@@ -230,6 +230,10 @@ spec:
               value: {{ $sensorTag | quote }}
             - name: TELOVIX_UPDATER_SENSOR_FLAVOR
               value: {{ .Values.flavor | quote }}
+            - name: TELOVIX_UPDATER_CAPTURE_WORKLOAD
+              value: {{ include "telovix-sensor.fullname" . | quote }}
+            - name: TELOVIX_UPDATER_DELIVERY_WORKLOAD
+              value: {{ printf "%s-delivery" (include "telovix-sensor.fullname" . | trunc 54 | trimSuffix "-") | quote }}
             - name: TELOVIX_UPDATER_IDENTITY_SECRET
               value: {{ $identitySecret | quote }}
             - name: TELOVIX_UPDATER_IMAGE

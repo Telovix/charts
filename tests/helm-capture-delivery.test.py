@@ -43,6 +43,23 @@ def daemonsets(result):
 
 
 class CaptureDeliveryTests(unittest.TestCase):
+    def test_controller_uses_exact_workload_names_for_observation(self):
+        for name in ("custom-owner", "a" * 63):
+            documents = manifests(render(
+                "fullnameOverride=" + name,
+                "upgradeController.enabled=true",
+                "sensor.consoleUrl=https://console.example.test",
+                "clusterName=qualification",
+                split=False,
+            ))
+            controller = next(document for document in documents
+                              if document["kind"] == "Deployment")
+            env = {item["name"]: item.get("value") for item in
+                   controller["spec"]["template"]["spec"]["containers"][0]["env"]}
+            self.assertEqual(env["TELOVIX_UPDATER_CAPTURE_WORKLOAD"], name)
+            self.assertEqual(env["TELOVIX_UPDATER_DELIVERY_WORKLOAD"],
+                             name[:54].rstrip("-") + "-delivery")
+
     def test_only_managed_controller_can_persist_job_results(self):
         for mode in ("managed", "flux", "argocd"):
             documents = manifests(render(
