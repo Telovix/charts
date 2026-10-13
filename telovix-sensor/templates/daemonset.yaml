@@ -169,6 +169,20 @@ spec:
                 fieldRef:
                   fieldPath: spec.nodeName
               {{- end }}
+            {{- if $split }}
+            - name: TELOVIX_POD_UID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.uid
+            - name: TELOVIX_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: TELOVIX_POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            {{- end }}
             - name: TELOVIX_CLUSTER_NAME
               valueFrom:
                 configMapKeyRef:

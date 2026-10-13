@@ -43,6 +43,18 @@ def daemonsets(result):
 
 
 class CaptureDeliveryTests(unittest.TestCase):
+    def test_split_roles_report_their_own_downward_pod_identity(self):
+        expected = {"TELOVIX_POD_UID": "metadata.uid", "TELOVIX_POD_NAME": "metadata.name",
+                    "TELOVIX_POD_NAMESPACE": "metadata.namespace"}
+        for workload in daemonsets(render()).values():
+            env = workload["spec"]["template"]["spec"]["containers"][0]["env"]
+            for name, field in expected.items():
+                selected = [item for item in env if item["name"] == name]
+                self.assertEqual(selected, [{"name": name, "valueFrom": {"fieldRef": {"fieldPath": field}}}])
+        for workload in daemonsets(render(split=False)).values():
+            names = {item["name"] for item in workload["spec"]["template"]["spec"]["containers"][0]["env"]}
+            self.assertFalse(names.intersection(expected))
+
     def test_long_controller_names_do_not_collide_with_sensor_resources(self):
         documents = manifests(render(
             "fullnameOverride=" + "a" * 63, "upgradeController.enabled=true",
