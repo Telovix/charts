@@ -18,8 +18,10 @@ in its own PID namespace and recent successful delivery protocol activity. The
 probe neither claims a lease nor refreshes that activity. This checks local
 delivery progress, not durable Console acceptance or exactly-once ingestion.
 
-The managed upgrade controller is rejected in this mode until component-specific
-release receipts and capture-owner handoff are implemented and qualified.
+The managed upgrade controller can observe this installation and request
+component-specific worker updates. Flux and Argo CD controller modes remain
+unavailable for split installations. Enabling the controller does not establish
+runtime qualification or permit whole-owner replacement.
 
 Render-only checks:
 

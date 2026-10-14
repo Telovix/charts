@@ -281,7 +281,8 @@ class CaptureDeliveryTests(unittest.TestCase):
         for settings in (
             ("captureDelivery.ownerImage=",),
             ("captureDelivery.ownerImage=registry.gitlab.com/telovix/sensor:latest",),
-            ("upgradeController.enabled=true",),
+            ("upgradeController.enabled=true", "upgradeController.managementMode=flux"),
+            ("upgradeController.enabled=true", "upgradeController.managementMode=argocd"),
         ):
             with self.subTest(settings=settings):
                 self.assertNotEqual(render(*settings).returncode, 0)
@@ -290,9 +291,36 @@ class CaptureDeliveryTests(unittest.TestCase):
             "sensor.enrollmentToken=test-token",
             "clusterName=test-cluster",
             "upgradeController.enabled=true",
+            "upgradeController.managementMode=flux",
         )
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("captureDelivery requires upgradeController.enabled=false", result.stderr)
+        self.assertIn("captureDelivery automated updates require upgradeController.managementMode=managed", result.stderr)
+
+    def test_managed_split_worker_upgrade_preserves_owner_and_controller_permissions(self):
+        settings = ("upgradeController.enabled=true",
+                    "upgradeController.managementMode=managed",
+                    "sensor.consoleUrl=https://console.example.test",
+                    "sensor.enrollmentToken=qualification-token", "clusterName=qualification")
+        before = manifests(render(*settings, "image.digest=sha256:" + "b" * 64))
+        after = manifests(render(*settings, "image.digest=sha256:" + "c" * 64))
+        workloads_before = {item["metadata"]["name"]: item for item in before
+                            if item["kind"] == "DaemonSet"}
+        workloads_after = {item["metadata"]["name"]: item for item in after
+                           if item["kind"] == "DaemonSet"}
+        owner = "test-telovix-sensor"
+        worker = owner + "-delivery"
+        self.assertEqual(workloads_before[owner], workloads_after[owner])
+        self.assertNotEqual(workloads_before[worker], workloads_after[worker])
+        controller = next(item for item in after if item["kind"] == "Deployment")
+        env = {item["name"]: item.get("value") for item in
+               controller["spec"]["template"]["spec"]["containers"][0]["env"]}
+        self.assertEqual(env["TELOVIX_UPDATER_CAPTURE_WORKLOAD"], owner)
+        self.assertEqual(env["TELOVIX_UPDATER_DELIVERY_WORKLOAD"], worker)
+        role = next(item for item in after if item["kind"] == "Role"
+                    and item["metadata"]["name"] == controller["metadata"]["name"])
+        self.assertTrue(any(rule["apiGroups"] == ["apps"]
+                            and rule["resources"] == ["daemonsets"]
+                            and rule["verbs"] == ["watch"] for rule in role["rules"]))
 
     def test_network_policy_covers_both_roles(self):
         documents = manifests(render("networkPolicy.enabled=true"))

@@ -16,7 +16,7 @@ image:
 # Independent capture/delivery qualification. Do not enable with published
 # monolithic releases. Requires a Console and both images supporting local IPC v7.
 # The owner stays pinned while image.tag/digest select only the delivery worker.
-# Managed Fleet upgrades remain disabled until component receipts are supported.
+# Automated worker updates require the managed component-plan controller.
 captureDelivery:
   enabled: false
   # Complete immutable image reference, including the flavor's index digest.

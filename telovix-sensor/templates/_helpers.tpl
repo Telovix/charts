@@ -81,8 +81,8 @@ Appends "-telecom" to the tag when flavor is "telecom":
 {{- if not (regexMatch "^[^[:space:]]+@sha256:[a-f0-9]{64}$" $image) -}}
 {{- fail "captureDelivery.ownerImage must be an immutable sha256 image reference" -}}
 {{- end -}}
-{{- if .Values.upgradeController.enabled -}}
-{{- fail "captureDelivery requires upgradeController.enabled=false until component upgrade receipts are supported" -}}
+{{- if and .Values.upgradeController.enabled (ne .Values.upgradeController.managementMode "managed") -}}
+{{- fail "captureDelivery automated updates require upgradeController.managementMode=managed" -}}
 {{- end -}}
 {{- $image -}}
 {{- else -}}
