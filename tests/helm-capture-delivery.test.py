@@ -43,6 +43,47 @@ def daemonsets(result):
 
 
 class CaptureDeliveryTests(unittest.TestCase):
+    def test_owner_bootstrap_is_atomic_and_preserves_installation_recovery(self):
+        owner = daemonsets(render())["test-telovix-sensor"]
+        spec = owner["spec"]["template"]["spec"]
+        self.assertEqual(spec["containers"][0]["command"], [
+            "/usr/bin/tini", "--", "/var/lib/telovix-sensor/capture-owner-bin/telovix-sensor"])
+        script = spec["initContainers"][0]["command"][-1]
+        with tempfile.TemporaryDirectory(prefix="telovix-owner-bootstrap-") as directory:
+            root = Path(directory)
+            state = root / "state"
+            state.mkdir()
+            source = root / "image-sensor"
+            source.write_bytes(b"initial owner image")
+            source.chmod(0o555)
+            script = script.replace("/sensor-state", str(state)).replace(
+                "/usr/local/bin/telovix-sensor", str(source))
+            def bootstrap():
+                return subprocess.run(["/bin/sh", "-c", "mountpoint() { return 0; };\n" + script],
+                                      capture_output=True, text=True, check=False)
+            self.assertEqual(bootstrap().returncode, 0)
+            installed = state / "capture-owner-bin" / "telovix-sensor"
+            self.assertEqual(installed.read_bytes(), source.read_bytes())
+            self.assertEqual(installed.stat().st_mode & 0o777, 0o555)
+            self.assertEqual(list(installed.parent.glob(".bootstrap.*")), [])
+            installed.unlink()
+            installed.write_bytes(b"pending installed candidate")
+            installed.chmod(0o555)
+            journal = state / ".capture-owner-install.json"
+            journal.write_text("pending recovery evidence")
+            source.unlink()
+            source.write_bytes(b"different desired image")
+            self.assertEqual(bootstrap().returncode, 0)
+            self.assertEqual(installed.read_bytes(), b"pending installed candidate")
+            self.assertEqual(journal.read_text(), "pending recovery evidence")
+            installed.unlink()
+            installed.symlink_to(source)
+            self.assertNotEqual(bootstrap().returncode, 0)
+            self.assertEqual(source.read_bytes(), b"different desired image")
+            journal.unlink()
+            self.assertNotEqual(bootstrap().returncode, 0)
+            self.assertEqual(source.read_bytes(), b"different desired image")
+
     def test_split_roles_report_their_own_downward_pod_identity(self):
         expected = {"TELOVIX_POD_UID": "metadata.uid", "TELOVIX_POD_NAME": "metadata.name",
                     "TELOVIX_POD_NAMESPACE": "metadata.namespace"}
@@ -157,7 +198,7 @@ class CaptureDeliveryTests(unittest.TestCase):
         self.assertEqual(owner["spec"]["updateStrategy"], {"type": "OnDelete"})
         container = owner["spec"]["template"]["spec"]["containers"][0]
         self.assertEqual(container["readinessProbe"]["exec"]["command"], [
-            "/usr/local/bin/telovix-sensor", "--capture-owner-readiness",
+            "/var/lib/telovix-sensor/capture-owner-bin/telovix-sensor", "--capture-owner-readiness",
         ])
         self.assertEqual(container["readinessProbe"]["timeoutSeconds"], 5)
         legacy = daemonsets(render(split=False))["test-telovix-sensor"]
@@ -244,7 +285,7 @@ class CaptureDeliveryTests(unittest.TestCase):
         worker = workloads["test-telovix-sensor-delivery"]["spec"]["template"]["spec"]
         self.assertEqual(owner["containers"][0]["args"], ["--capture-owner"])
         init = owner["initContainers"][0]["command"][-1]
-        self.assertNotIn("rm -", init)
+        self.assertNotIn("rm -rf", init)
         self.assertNotIn("TOKEN_HASH", init)
         self.assertFalse(worker["automountServiceAccountToken"])
         for flag in ("hostPID", "hostNetwork", "hostIPC"):

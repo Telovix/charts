@@ -123,6 +123,37 @@ spec:
               fi
               {{- end }}
 
+              {{- if $split }}
+              owner_installation=/sensor-state/capture-owner-bin
+              test ! -L "$owner_installation"
+              if [ ! -e "$owner_installation" ]; then
+                mkdir -m 0700 "$owner_installation"
+              fi
+              test -d "$owner_installation"
+              test "$(stat -c '%u:%a' "$owner_installation")" = "$(id -u):700"
+              owner_executable="$owner_installation/telovix-sensor"
+              test ! -L "$owner_executable"
+              if [ -e "$owner_executable" ]; then
+                test -f "$owner_executable"
+              fi
+              journal=/sensor-state/.capture-owner-install.json
+              if [ -e "$journal" ] || [ -L "$journal" ]; then
+                # Recovery owns the installed file until its journal is reconciled.
+                test -f "$journal" && test ! -L "$journal"
+                test -f "$owner_executable" && test ! -L "$owner_executable"
+                test "$(stat -c '%u:%a' "$owner_executable")" = "$(id -u):555"
+              else
+                (
+                  umask 077
+                  temporary=$(mktemp "$owner_installation/.bootstrap.XXXXXX")
+                  trap 'rm -f "$temporary"' 0
+                  cp /usr/local/bin/telovix-sensor "$temporary"
+                  chmod 0555 "$temporary"
+                  mv -f "$temporary" "$owner_executable"
+                )
+              fi
+              {{- end }}
+
               echo "[telovix] BPF filesystem ready"
           env:
             - name: TELOVIX_ENROLLMENT_TOKEN
@@ -144,6 +175,7 @@ spec:
           image: {{ include "telovix-sensor.captureImage" . }}
           imagePullPolicy: {{ ternary "IfNotPresent" .Values.image.pullPolicy $split }}
           {{- if $split }}
+          command: ["/usr/bin/tini", "--", "/var/lib/telovix-sensor/capture-owner-bin/telovix-sensor"]
           args: ["--capture-owner"]
           {{- end }}
           env:
@@ -222,7 +254,7 @@ spec:
             exec:
               command:
                 {{- if $split }}
-                - /usr/local/bin/telovix-sensor
+                - /var/lib/telovix-sensor/capture-owner-bin/telovix-sensor
                 - --capture-owner-readiness
                 {{- else }}
                 - /bin/sh
