@@ -26,8 +26,9 @@ Both are required for a functional deployment.
 
 Chart **1.1.0** adds bundled storage and self-hosted bootstrap settings; chart
 1.0.0 does not support them. The chart version is separate from the Console
-application version. Its default image tag is `edge`; use a qualified image
-digest for deployment. Preconfigured setup requires a Console image that supports
+application version. Chart **1.1.1** defaults to Console **1.0.35** via its
+application version; `image.tag` and `image.digest` remain explicit overrides.
+Preconfigured setup requires a Console image that supports
 self-hosted bootstrap, not just the new chart.
 
 Bundled storage is opt-in; Portal-generated values enable it. Configure
@@ -81,7 +82,7 @@ Create a values override file with your database, analytics, hostname, and TLS s
 helm repo add telovix https://telovix.github.io/charts
 helm repo update telovix
 helm install telovix-console telovix/telovix-console \
-  --version 1.1.0 \
+  --version 1.1.1 \
   --namespace telovix \
   --create-namespace \
   -f values-override.yaml
@@ -173,7 +174,7 @@ The chart mounts that Secret at `sensorTls.mountPath` and injects the correspond
 | Value | Type | Default | Description |
 |---|---|---|---|
 | `image.repository` | string | `registry.gitlab.com/telovix/console` | Console image repository |
-| `image.tag` | string | `edge` | Console image tag |
+| `image.tag` | string | `""` | Defaults to the chart application version |
 | `image.digest` | string | `""` | Immutable image digest; takes precedence over tag |
 | `bundledDatabases.enabled` | bool | `false` | Install private PostgreSQL and ClickHouse |
 | `selfHosted.consoleId` | string | `""` | Initial Console ID; otherwise generated and preserved |

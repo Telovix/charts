@@ -3,7 +3,7 @@
 
 image:
   repository: registry.gitlab.com/telovix/console
-  tag: "edge"
+  tag: "" # Defaults to the chart appVersion; override for a different release.
   digest: ""
   pullPolicy: IfNotPresent
 
