@@ -139,8 +139,13 @@ spec:
               journal=/sensor-state/.capture-owner-install.json
               if [ -e "$journal" ] || [ -L "$journal" ]; then
                 # Recovery owns the installed file until its journal is reconciled.
-                test -f "$journal" && test ! -L "$journal"
-                test -f "$owner_executable" && test ! -L "$owner_executable"
+                test -f "$journal"
+                test ! -L "$journal"
+                test -f "$owner_executable"
+                test ! -L "$owner_executable"
+              fi
+              if [ -e "$owner_executable" ]; then
+                # A committed handoff remains authoritative across pod recreation.
                 test "$(stat -c '%u:%a' "$owner_executable")" = "$(id -u):555"
               else
                 (
