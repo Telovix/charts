@@ -6,6 +6,35 @@ function render(...args) {
   return spawnSync('helm', ['template', 'test', new URL('../telovix-console', import.meta.url).pathname, ...args], { encoding: 'utf8' })
 }
 
+test('release defaults use a versioned image and preserve explicit tag overrides', () => {
+  const result = render()
+  assert.equal(result.status, 0, result.stderr)
+  assert.match(result.stdout, /image: "registry.gitlab.com\/telovix\/console:\d+\.\d+\.\d+"/)
+  const override = render('--set-string', 'image.tag=9.8.7')
+  assert.equal(override.status, 0, override.stderr)
+  assert.match(override.stdout, /image: "registry.gitlab.com\/telovix\/console:9.8.7"/)
+})
+
+test('shared proxy settings render once with update overrides taking precedence', () => {
+  for (const updates of [false, true]) {
+    const args = ['--set', 'llm.provider=custom', '--set-string', 'llm.apiKey=test-key',
+      '--set-string', 'llm.httpProxy=http://llm-proxy:8080',
+      '--set-string', 'llm.httpsProxy=http://llm-proxy:8443']
+    if (updates) args.push('--set-string', 'update.httpProxy=http://update-proxy:8080',
+      '--set-string', 'update.httpsProxy=http://update-proxy:8443')
+    const result = render(...args)
+    assert.equal(result.status, 0, result.stderr)
+    assert.equal((result.stdout.match(/name: TELOVIX_LLM_HTTP_PROXY\n/g) ?? []).length, 1)
+    assert.equal((result.stdout.match(/name: TELOVIX_LLM_HTTPS_PROXY\n/g) ?? []).length, 1)
+    const host = updates ? 'update-proxy' : 'llm-proxy'
+    assert.ok(result.stdout.includes(`value: "http://${host}:8080"`))
+    assert.ok(result.stdout.includes(`value: "http://${host}:8443"`))
+  }
+  const updateOnly = render('--set-string', 'update.httpProxy=http://update-proxy:8080')
+  assert.equal(updateOnly.status, 0, updateOnly.stderr)
+  assert.match(updateOnly.stdout, /name: TELOVIX_LLM_HTTP_PROXY\s+value: "http:\/\/update-proxy:8080"/)
+})
+
 test('single HTTPS listener, correct UID, persistent identity and wizard-friendly probes', () => {
   const result = render()
   assert.equal(result.status, 0, result.stderr)
