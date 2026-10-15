@@ -306,8 +306,8 @@ hostIPC: false
 # Use ClusterFirstWithHostNet when hostNetwork is true.
 dnsPolicy: ClusterFirstWithHostNet
 
-# Allow the sensor to flush events and cleanly shut down.
-terminationGracePeriodSeconds: 30
+# Allow staged reader draining, probe retirement, and engine cleanup before SIGKILL.
+terminationGracePeriodSeconds: 90
 
 imagePullSecrets: []
 

@@ -43,6 +43,10 @@ def daemonsets(result):
 
 
 class CaptureDeliveryTests(unittest.TestCase):
+    def test_owner_teardown_has_time_to_drain_and_retire_capture_resources(self):
+        for daemonset in daemonsets(render()).values():
+            self.assertEqual(daemonset['spec']['template']['spec']['terminationGracePeriodSeconds'], 90)
+
     def test_owner_bootstrap_is_atomic_and_preserves_installation_recovery(self):
         owner = daemonsets(render())["test-telovix-sensor"]
         spec = owner["spec"]["template"]["spec"]
