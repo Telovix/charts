@@ -147,6 +147,24 @@ spec:
               if [ -e "$owner_executable" ]; then
                 # A committed handoff remains authoritative across pod recreation.
                 test "$(stat -c '%u:%a' "$owner_executable")" = "$(id -u):555"
+              fi
+              incompatible_owner() {
+                echo "[telovix] capture-owner compatibility check failed; fresh install required. Installed owner, recovery journal and Console record have not been removed." >&2
+                exit 1
+              }
+              owner_contract() {
+                metadata=$(timeout -k 5s 20s "$1" --capture-owner-info) || return 1
+                # Metadata uses compact Sensor JSON; fail closed on unknown framing.
+                case "$metadata" in
+                  *'"delivery_protocol_version":8,'*) ;;
+                  *) return 1 ;;
+                esac
+                printf '%s\n' "$metadata" | sed 's/"version":"[^"]*"/"version":""/'
+              }
+              image_contract=$(owner_contract /usr/local/bin/telovix-sensor) || incompatible_owner
+              if [ -e "$owner_executable" ]; then
+                installed_contract=$(owner_contract "$owner_executable") || incompatible_owner
+                test "$installed_contract" = "$image_contract" || incompatible_owner
               else
                 (
                   umask 077
