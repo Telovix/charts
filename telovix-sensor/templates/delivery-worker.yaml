@@ -1,6 +1,10 @@
 {{- $capture := .Values.captureDelivery | default dict -}}
 {{- if get $capture "enabled" -}}
 {{- $worker := get $capture "worker" | default dict -}}
+{{- $workerOverrides := dict -}}
+{{- range (get $worker "extraEnv" | default list) -}}
+{{- $_ := set $workerOverrides .name true -}}
+{{- end -}}
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -101,6 +105,11 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
+            {{- range .Values.extraEnv }}
+            {{- if not (hasKey $workerOverrides .name) }}
+            {{- toYaml (list .) | nindent 12 }}
+            {{- end }}
+            {{- end }}
             {{- with (get $worker "extraEnv") }}
             {{- toYaml . | nindent 12 }}
             {{- end }}

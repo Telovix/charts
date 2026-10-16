@@ -1,6 +1,7 @@
 """Render-only qualification; these tests do not deploy published Sensor images."""
 
 from pathlib import Path
+import json
 import shutil
 import subprocess
 import tempfile
@@ -58,7 +59,12 @@ class CaptureDeliveryTests(unittest.TestCase):
             state = root / "state"
             state.mkdir()
             source = root / "image-sensor"
-            source.write_bytes(b"initial owner image")
+            def owner_image(version, label, protocol=8, handoff=15):
+                contract = json.dumps(dict(architecture="fixture", component="capture-owner",
+                    delivery_protocol_version=protocol, engine_version="v1.7.1", flavor="telecom",
+                    handoff_version=handoff, installation_version=1, version=version), separators=(",", ":"))
+                return ("#!/bin/sh\nprintf '%s\\n' '" + contract + "'\n# " + label + "\n").encode()
+            source.write_bytes(owner_image("1.0.77", "initial owner image"))
             source.chmod(0o555)
             script = script.replace("/sensor-state", str(state)).replace(
                 "/usr/local/bin/telovix-sensor", str(source))
@@ -72,35 +78,47 @@ class CaptureDeliveryTests(unittest.TestCase):
             self.assertEqual(list(installed.parent.glob(".bootstrap.*")), [])
             # A completed handoff removes its recovery journal, not its installed owner.
             installed.unlink()
-            installed.write_bytes(b"committed handed-off owner")
+            committed_image = owner_image("1.0.78", "committed handed-off owner")
+            installed.write_bytes(committed_image)
             installed.chmod(0o555)
             committed_inode = installed.stat().st_ino
             self.assertEqual(bootstrap().returncode, 0)
-            self.assertEqual(installed.read_bytes(), b"committed handed-off owner")
+            self.assertEqual(installed.read_bytes(), committed_image)
             self.assertEqual(installed.stat().st_ino, committed_inode)
             installed.chmod(0o755)
             self.assertNotEqual(bootstrap().returncode, 0)
-            self.assertEqual(installed.read_bytes(), b"committed handed-off owner")
+            self.assertEqual(installed.read_bytes(), committed_image)
             installed.chmod(0o555)
             installed.unlink()
-            installed.write_bytes(b"pending installed candidate")
+            pending_image = owner_image("1.0.78", "pending installed candidate")
+            installed.write_bytes(pending_image)
             installed.chmod(0o555)
             journal = state / ".capture-owner-install.json"
             journal.write_text("pending recovery evidence")
             source.unlink()
-            source.write_bytes(b"different desired image")
+            desired_image = owner_image("1.0.79", "different desired image")
+            source.write_bytes(desired_image)
+            source.chmod(0o555)
             self.assertEqual(bootstrap().returncode, 0)
-            self.assertEqual(installed.read_bytes(), b"pending installed candidate")
+            self.assertEqual(installed.read_bytes(), pending_image)
             self.assertEqual(journal.read_text(), "pending recovery evidence")
+            for incompatible in (owner_image("1.0.78", "old IPC", protocol=7),
+                                 owner_image("1.0.78", "old handoff", handoff=14)):
+                installed.unlink()
+                installed.write_bytes(incompatible)
+                installed.chmod(0o555)
+                self.assertNotEqual(bootstrap().returncode, 0)
+                self.assertEqual(installed.read_bytes(), incompatible)
+                self.assertEqual(journal.read_text(), "pending recovery evidence")
             installed.unlink()
             self.assertNotEqual(bootstrap().returncode, 0)
             self.assertFalse(installed.exists())
             installed.symlink_to(source)
             self.assertNotEqual(bootstrap().returncode, 0)
-            self.assertEqual(source.read_bytes(), b"different desired image")
+            self.assertEqual(source.read_bytes(), desired_image)
             journal.unlink()
             self.assertNotEqual(bootstrap().returncode, 0)
-            self.assertEqual(source.read_bytes(), b"different desired image")
+            self.assertEqual(source.read_bytes(), desired_image)
 
     def test_split_roles_report_their_own_downward_pod_identity(self):
         expected = {"TELOVIX_POD_UID": "metadata.uid", "TELOVIX_POD_NAME": "metadata.name",
@@ -263,6 +281,25 @@ class CaptureDeliveryTests(unittest.TestCase):
         ))
         self.assertEqual(before["test-telovix-sensor"]["spec"], after["test-telovix-sensor"]["spec"])
         self.assertNotEqual(before["test-telovix-sensor-delivery"]["spec"], after["test-telovix-sensor-delivery"]["spec"])
+
+    def test_shared_environment_reaches_delivery_with_explicit_worker_overrides(self):
+        workloads = daemonsets(render(
+            "extraEnv[0].name=HTTPS_PROXY", "extraEnv[0].value=http://shared-proxy:3128",
+            "extraEnv[1].name=NO_PROXY", "extraEnv[1].value=localhost",
+            "extraEnv[2].name=PROXY_TOKEN",
+            "extraEnv[2].valueFrom.secretKeyRef.name=proxy-credentials",
+            "extraEnv[2].valueFrom.secretKeyRef.key=token",
+            "captureDelivery.worker.extraEnv[0].name=HTTPS_PROXY",
+            "captureDelivery.worker.extraEnv[0].value=http://delivery-proxy:3128",
+        ))
+        owner_env = workloads["test-telovix-sensor"]["spec"]["template"]["spec"]["containers"][0]["env"]
+        worker_env = workloads["test-telovix-sensor-delivery"]["spec"]["template"]["spec"]["containers"][0]["env"]
+        proxies = [entry for entry in worker_env if entry["name"] == "HTTPS_PROXY"]
+        self.assertEqual(proxies, [{"name": "HTTPS_PROXY", "value": "http://delivery-proxy:3128"}])
+        self.assertIn({"name": "NO_PROXY", "value": "localhost"}, worker_env)
+        self.assertIn({"name": "PROXY_TOKEN", "valueFrom": {
+            "secretKeyRef": {"name": "proxy-credentials", "key": "token"}}}, worker_env)
+        self.assertIn({"name": "HTTPS_PROXY", "value": "http://shared-proxy:3128"}, owner_env)
 
     def test_long_names_keep_distinct_valid_workload_names(self):
         workloads = daemonsets(render("fullnameOverride=" + "a" * 63))
