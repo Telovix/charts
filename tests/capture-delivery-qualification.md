@@ -2,8 +2,8 @@
 
 `captureDelivery.enabled` is disabled by default. This is a qualification path,
 not an installed Fleet upgrade contract. Published monolithic Sensor images do
-not enable it. Both component images must implement local protocol version 7,
-and the Console must support delivery-only heartbeats.
+not enable it. Both component images must implement local protocol version 9,
+and the Console must support delivery-only heartbeats and owner handoff format 23.
 
 The capture-owner image requires an explicit SHA-256 digest. Normal image tag,
 digest, pull-policy and delivery resource updates change only the worker

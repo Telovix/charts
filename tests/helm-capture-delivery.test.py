@@ -59,7 +59,7 @@ class CaptureDeliveryTests(unittest.TestCase):
             state = root / "state"
             state.mkdir()
             source = root / "image-sensor"
-            def owner_image(version, label, protocol=8, handoff=15):
+            def owner_image(version, label, protocol=9, handoff=23):
                 contract = json.dumps(dict(architecture="fixture", component="capture-owner",
                     delivery_protocol_version=protocol, engine_version="v1.7.1", flavor="telecom",
                     handoff_version=handoff, installation_version=1, version=version), separators=(",", ":"))
@@ -71,8 +71,17 @@ class CaptureDeliveryTests(unittest.TestCase):
             def bootstrap():
                 return subprocess.run(["/bin/sh", "-c", "mountpoint() { return 0; };\n" + script],
                                       capture_output=True, text=True, check=False)
-            self.assertEqual(bootstrap().returncode, 0)
             installed = state / "capture-owner-bin" / "telovix-sensor"
+            for protocol in (7, 8, 10):
+                source.unlink()
+                source.write_bytes(owner_image("1.0.77", "incompatible fresh image", protocol=protocol))
+                source.chmod(0o555)
+                self.assertNotEqual(bootstrap().returncode, 0)
+                self.assertFalse(installed.exists())
+            source.unlink()
+            source.write_bytes(owner_image("1.0.77", "initial owner image"))
+            source.chmod(0o555)
+            self.assertEqual(bootstrap().returncode, 0)
             self.assertEqual(installed.read_bytes(), source.read_bytes())
             self.assertEqual(installed.stat().st_mode & 0o777, 0o555)
             self.assertEqual(list(installed.parent.glob(".bootstrap.*")), [])
@@ -103,7 +112,10 @@ class CaptureDeliveryTests(unittest.TestCase):
             self.assertEqual(installed.read_bytes(), pending_image)
             self.assertEqual(journal.read_text(), "pending recovery evidence")
             for incompatible in (owner_image("1.0.78", "old IPC", protocol=7),
-                                 owner_image("1.0.78", "old handoff", handoff=14)):
+                                 owner_image("1.0.78", "previous IPC", protocol=8),
+                                 owner_image("1.0.78", "future IPC", protocol=10),
+                                 owner_image("1.0.78", "old handoff", handoff=22),
+                                 owner_image("1.0.78", "future handoff", handoff=24)):
                 installed.unlink()
                 installed.write_bytes(incompatible)
                 installed.chmod(0o555)

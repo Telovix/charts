@@ -156,7 +156,7 @@ spec:
                 metadata=$(timeout -k 5s 20s "$1" --capture-owner-info) || return 1
                 # Metadata uses compact Sensor JSON; fail closed on unknown framing.
                 case "$metadata" in
-                  *'"delivery_protocol_version":8,'*) ;;
+                  *'"delivery_protocol_version":9,'*) ;;
                   *) return 1 ;;
                 esac
                 printf '%s\n' "$metadata" | sed 's/"version":"[^"]*"/"version":""/'

@@ -14,7 +14,7 @@ image:
   pullSecrets: []
 
 # Independent capture/delivery qualification. Do not enable with published
-# monolithic releases. Requires a Console and both images supporting local IPC v8.
+# monolithic releases. Requires a Console and both images supporting local IPC v9.
 # The owner stays pinned while image.tag/digest select only the delivery worker.
 # Automated worker updates require the managed component-plan controller.
 captureDelivery:
