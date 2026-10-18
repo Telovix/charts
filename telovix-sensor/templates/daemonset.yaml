@@ -85,9 +85,11 @@ spec:
               set -eu
 
               # ── BPF filesystem setup ────────────────────────────────────────
-              if ! mountpoint -q /host-bpf 2>/dev/null; then
-                mount -t bpf bpffs /host-bpf || true
+              # A hostPath bind is a mountpoint even when its backing filesystem is not BPFFS.
+              if [ "$(stat -f -c '%t' /host-bpf)" != "cafe4a11" ]; then
+                mount -t bpf bpffs /host-bpf
               fi
+              test "$(stat -f -c '%t' /host-bpf)" = "cafe4a11"
               {{- if not $split }}
               rm -rf /host-bpf/telovix-sensor /host-bpf/telovix || true
 
