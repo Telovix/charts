@@ -1,0 +1,18 @@
+# Local validation, investigation, and assistant workspace files.
+/tests/
+/documentation/
+/AGENTS.md
+/CLAUDE.md
+/.codex/
+/.claude/
+/.vscode/
+/.idea/
+__pycache__/
+*.pyc
+.DS_Store
+.env
+.env.*
+*.bak
+*.orig
+*.swp
+*~
