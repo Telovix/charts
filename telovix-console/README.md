@@ -26,7 +26,7 @@ Both are required for a functional deployment.
 
 Chart **1.1.0** adds bundled storage and self-hosted bootstrap settings; chart
 1.0.0 does not support them. The chart version is separate from the Console
-application version. Chart **1.1.2** defaults to Console **1.0.36** via its
+application version. Chart **1.1.3** defaults to Console **1.0.37** via its
 application version; `image.tag` and `image.digest` remain explicit overrides.
 Preconfigured setup requires a Console image that supports
 self-hosted bootstrap, not just the new chart.
