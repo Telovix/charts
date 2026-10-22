@@ -246,11 +246,13 @@ spec:
             {{- if .Values.packRegistry.url }}
             - name: TELOVIX_CONSOLE_PACK_REGISTRY_URL
               value: {{ .Values.packRegistry.url | quote }}
+            {{- if .Values.packRegistry.sharedSecret }}
             - name: TELOVIX_CONSOLE_PACK_REGISTRY_SHARED_SECRET
               valueFrom:
                 secretKeyRef:
                   name: {{ include "telovix-console.fullname" . }}-secret
                   key: TELOVIX_CONSOLE_PACK_REGISTRY_SHARED_SECRET
+            {{- end }}
             {{- end }}
 
             # ── Update proxies ───────────────────────────────────────────────
