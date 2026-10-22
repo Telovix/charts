@@ -185,11 +185,13 @@ spec:
             {{- if .Values.llm.provider }}
             - name: TELOVIX_LLM_PROVIDER
               value: {{ .Values.llm.provider | quote }}
+            {{- if .Values.llm.apiKey }}
             - name: TELOVIX_LLM_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: {{ include "telovix-console.fullname" . }}-secret
                   key: TELOVIX_LLM_API_KEY
+            {{- end }}
             {{- if .Values.llm.model }}
             - name: TELOVIX_LLM_MODEL
               value: {{ .Values.llm.model | quote }}
