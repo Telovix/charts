@@ -1,3 +1,9 @@
+{{- $secret := include (print $.Template.BasePath "/secret.yaml") . | fromYaml -}}
+{{- $configuredSecrets := omit $secret.stringData "CONSOLE_ID" "POSTGRES_PASSWORD" -}}
+{{- /* Generated database credentials are preserved by lookup, not chart values. */ -}}
+{{- if .Values.bundledDatabases.enabled -}}
+{{- $configuredSecrets = omit $configuredSecrets "DATABASE_URL" "CLICKHOUSE_PASSWORD" -}}
+{{- end -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -13,6 +19,8 @@ spec:
       {{- include "telovix-console.selectorLabels" . | nindent 6 }}
   template:
     metadata:
+      annotations:
+        checksum/configured-secrets: {{ $configuredSecrets | toJson | sha256sum | quote }}
       labels:
         {{- include "telovix-console.selectorLabels" . | nindent 8 }}
     spec:
