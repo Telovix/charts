@@ -9,3 +9,16 @@
 *.swp
 *~
 .vscode/
+.idea/
+.codex/
+.codex-local/
+.agents/
+.claude/
+documentation/
+tests/
+__pycache__/
+*.pyc
+*.log
+*.key
+*.pem
+*.kubeconfig

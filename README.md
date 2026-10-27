@@ -10,7 +10,7 @@ Both charts are published at `https://telovix.github.io/charts`.
 
 ## Sensor deployment
 
-[![Helm](https://img.shields.io/badge/helm-3.8%2B-blue)](https://helm.sh)
+[![Helm](https://img.shields.io/badge/helm-3.14%2B-blue)](https://helm.sh)
 [![Kubernetes](https://img.shields.io/badge/kubernetes-1.21%2B-blue)](https://kubernetes.io)
 [![License](https://img.shields.io/badge/license-Commercial-lightgrey)](https://telovix.com)
 
@@ -48,7 +48,7 @@ Designed for **telecom and Open RAN environments**: supports O-RAN role labeling
 | Requirement | Minimum version / detail |
 |---|---|
 | Kubernetes or k3s | 1.21+ |
-| Helm | 3.8+ |
+| Helm | 3.14+ for the documented upgrade workflow |
 | Linux kernel | 5.8+ (5.15+ recommended for full eBPF feature set) |
 | Telovix Console | Running and reachable from nodes |
 | Enrollment token | Generated in Console → Sensors → Deploy |
@@ -280,7 +280,7 @@ kubectl logs -n telovix \
 | `hostPID` | Grant access to host PID namespace | `true` |
 | `hostNetwork` | Use host network namespace | `true` |
 | `dnsPolicy` | Pod DNS policy | `ClusterFirstWithHostNet` |
-| `terminationGracePeriodSeconds` | Graceful shutdown window | `30` |
+| `terminationGracePeriodSeconds` | Graceful shutdown window | `90` |
 | `podAnnotations` | Extra annotations on sensor pods | `{}` |
 | `podLabels` | Extra labels on sensor pods | `{}` |
 | `extraEnv` | Extra environment variables | `[]` |
@@ -457,14 +457,14 @@ The sensor requires elevated privileges because eBPF monitoring operates at the 
 | `hostNetwork: true` | Track network connections on the host network stack - without this, inter-pod traffic is invisible |
 | `privileged: true` | Load eBPF programs into the kernel, pin maps to `/sys/fs/bpf`, lock memory for BPF maps - required by the Linux BPF subsystem |
 
-**What the sensor does NOT do:**
+The chart mounts host configuration and process information read-only where
+possible. Sensor state is stored under the configured `statePath`, and capture
+programs use the host BPF filesystem. The runtime also uses packaged system
+helpers for startup, extraction, and lifecycle operations.
 
-- Does not write to host paths outside `/var/lib/telovix-sensor`
-- Does not mount `/etc` writable (read-only mount for OS fingerprinting only)
-- Does not require write access to `/proc` (read-only)
-- Does not shell out to system tools - the sensor binary is self-contained
-
-These requirements are identical to CrowdStrike Falcon, Sysdig Agent, Falco, and every other kernel-level security sensor. The Linux eBPF verifier enforces all safety guarantees at the kernel level.
+Review the rendered manifests against your cluster's security policy before
+installation. Kernel eBPF verification does not replace deployment access
+controls or qualification of the selected kernel capabilities.
 
 
 ## Troubleshooting
