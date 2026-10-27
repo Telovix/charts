@@ -26,7 +26,7 @@ Both are required for a functional deployment.
 
 Chart **1.1.0** adds bundled storage and self-hosted bootstrap settings; chart
 1.0.0 does not support them. The chart version is separate from the Console
-application version. Chart **1.1.4** defaults to Console **1.0.38** via its
+application version. Chart **1.1.5** defaults to Console **1.0.39** via its
 application version; `image.tag` and `image.digest` remain explicit overrides.
 Preconfigured setup requires a Console image that supports
 self-hosted bootstrap, not just the new chart.
@@ -82,7 +82,7 @@ Create a values override file with your database, analytics, hostname, and TLS s
 helm repo add telovix https://telovix.github.io/charts
 helm repo update telovix
 helm install telovix-console telovix/telovix-console \
-  --version 1.1.2 \
+  --version 1.1.5 \
   --namespace telovix \
   --create-namespace \
   -f values-override.yaml
