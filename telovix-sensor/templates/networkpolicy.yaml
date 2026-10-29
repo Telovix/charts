@@ -8,7 +8,7 @@ metadata:
     {{- include "telovix-sensor.labels" . | nindent 4 }}
   annotations:
     telovix.io/purpose: "Restrict sensor pod egress for O-RAN vDU certification compliance."
-    telovix.io/wg11-ref: "O-RAN WG11 Security-Req §6.5 — Management plane access control."
+    telovix.io/wg11-ref: "O-RAN WG11 Security-Req §6.5 - Management plane access control."
     telovix.io/note: |
       When hostNetwork=true the policy is enforced by CNIs that support HostEndpoint
       policies (Cilium, Calico). Verify enforcement with your CNI before certification submission.
@@ -28,7 +28,7 @@ spec:
   policyTypes:
     - Ingress
     - Egress
-  # Deny all inbound connections — the sensor never listens for inbound traffic.
+  # Deny all inbound connections - the sensor never listens for inbound traffic.
   ingress: []
   egress:
     # DNS: required to resolve the Console hostname from TELOVIX_CONSOLE_URL.
@@ -37,7 +37,7 @@ spec:
           port: 53
         - protocol: TCP
           port: 53
-    # Telovix Console mTLS listener — sensor heartbeat and enrollment.
+    # Telovix Console mTLS listener - sensor heartbeat and enrollment.
     # Default: 15484. Override via networkPolicy.consolePort if the Console
     # is behind a load balancer on a different port.
     - ports:

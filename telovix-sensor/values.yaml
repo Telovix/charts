@@ -34,17 +34,17 @@ captureDelivery:
 # Sensor flavor: "standard" | "telecom"
 # Determines which container image variant is deployed.
 #
-#   standard  — core eBPF runtime security only, no 5G/O-RAN features (default).
+#   standard  - core eBPF runtime security only, no 5G/O-RAN features (default).
 #               Image tag: <version>  (e.g. registry.gitlab.com/telovix/sensor:1.0.0)
-#               For any Linux node — servers, VMs, Kubernetes worker nodes, edge devices.
+#               For any Linux node - servers, VMs, Kubernetes worker nodes, edge devices.
 #
-#   telecom   — everything in standard, plus 5G NF role detection (AMF/SMF/UPF/gNB-DU/CU),
+#   telecom   - everything in standard, plus 5G NF role detection (AMF/SMF/UPF/gNB-DU/CU),
 #               NGAP KPI monitoring, and O-RAN security analysis.
 #               Image tag: <version>-telecom  (e.g. registry.gitlab.com/telovix/sensor:1.0.0-telecom)
 #               For Kubernetes nodes hosting 5G core or Open RAN workloads.
 #
 # Changing this value after initial deployment triggers a DaemonSet rollout.
-# No data migration is required — sensor identity and certificates are preserved.
+# No data migration is required - sensor identity and certificates are preserved.
 #
 # Bare-metal equivalent: the Console serves the matching binary based on the
 # ?flavor= query param in the install script URL. The binary naming mirrors this:
@@ -55,7 +55,7 @@ flavor: standard
 
 # ── Registry credentials ──────────────────────────────────────────────────────
 # A read-only deploy token is bundled below so users can pull the sensor image
-# without providing any credentials. The token has read_registry scope only —
+# without providing any credentials. The token has read_registry scope only -
 # it cannot push images or access source code.
 #
 # Override with existingPullSecret if your organisation uses a centralised
@@ -140,7 +140,7 @@ sensor:
   # Tags allow fleet segmentation by network, site, or role without manual edits in the Console.
   # Format: key:value pairs or plain labels.
   #
-  # Example — multi-site 5G deployment:
+  # Example - multi-site 5G deployment:
   #   tags:
   #     - network:oslo-5g
   #     - site:oslo-dc1
@@ -198,7 +198,7 @@ clusterName: ""
 # ── O-RAN vDU/vCU deployment note ─────────────────────────────────────────────
 # On constrained O-RAN devices (vDU/vCU) with dedicated L1 DPDK cores:
 #   - Use the values-oran-vdu.yaml overlay (cpu limit: 200m, memory limit: 256Mi)
-#   - NEVER set cpu limit > 500m on a vDU — L1 radio processing has zero tolerance
+#   - NEVER set cpu limit > 500m on a vDU - L1 radio processing has zero tolerance
 #     for CPU contention on non-isolated cores.
 #   - See docs/oran-deployment-guide.md for NUMA affinity and isolcpus guidance.
 #
@@ -211,7 +211,7 @@ resources:
     cpu: 500m
     # Tetragon (the eBPF engine) requires ~300-350MB RSS during policy loading.
     # Control-plane nodes run etcd, kube-apiserver, scheduler, and CoreDNS in addition
-    # to workload pods — significantly more eBPF events and larger ring buffers than workers.
+    # to workload pods - significantly more eBPF events and larger ring buffers than workers.
     # 2Gi provides headroom for the engine + Rust agent + BPF maps on control-plane nodes.
     # For constrained vDU/vCU nodes use the values-oran-vdu.yaml overlay instead.
     memory: 2Gi
@@ -342,7 +342,7 @@ networkPolicy:
 # If your Console is reachable only via proxy, set these variables so the sensor
 # can reach it during enrollment and heartbeat.
 #
-# Example — HTTP/HTTPS proxy:
+# Example - HTTP/HTTPS proxy:
 #   extraEnv:
 #     - name: HTTP_PROXY
 #       value: "http://proxy.corp.example.com:8080"

@@ -122,7 +122,7 @@ update:
   httpProxy: ""
   httpsProxy: ""
 
-# Federation — connect multiple Console instances (optional, advanced).
+# Federation - connect multiple Console instances (optional, advanced).
 # role: standalone (default) | central | region
 federation:
   role: ""
@@ -132,25 +132,25 @@ federation:
   apiKey: ""
   exportIntervalSecs: 300
 
-# Redpanda/Kafka — for scale-plan streaming ingestion (optional).
+# Redpanda/Kafka - for scale-plan streaming ingestion (optional).
 redpanda:
   enabled: false
   url: ""
   topic: "telovix.runtime_events"
 
-# Pack registry — for signed policy pack updates (optional).
+# Pack registry - for signed policy pack updates (optional).
 packRegistry:
   url: ""
   sharedSecret: ""
 
-# Managed deployment bootstrap (set by Portal provisioner — do not edit manually).
+# Managed deployment bootstrap (set by Portal provisioner - do not edit manually).
 bootstrap:
   adminEmail: ""
   adminName: ""
   adminPasswordHash: ""
   licenseBundle: ""
 
-# Managed deployment IDs (set by Portal provisioner — do not edit manually).
+# Managed deployment IDs (set by Portal provisioner - do not edit manually).
 managed:
   consoleId: ""
   managementSecret: ""

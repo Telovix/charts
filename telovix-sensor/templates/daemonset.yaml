@@ -96,7 +96,7 @@ spec:
               # ── Stale-credential detection ──────────────────────────────────
               # The sensor stores its mTLS client certificate in the hostPath
               # volume (/var/lib/telovix-sensor). When the enrollment token
-              # changes — e.g. after a Console database wipe or token rotation —
+              # changes - e.g. after a Console database wipe or token rotation -
               # the Console no longer recognises the old certificate and rejects
               # every heartbeat with 401 invalid_sensor_trust.
               #
@@ -114,7 +114,7 @@ spec:
               TOKEN_HASH=$(echo -n "${TELOVIX_ENROLLMENT_TOKEN}" | sha256sum | cut -d' ' -f1)
               STORED_HASH=$(cat /sensor-state/.enrollment-token-hash 2>/dev/null || true)
               if [ "${TOKEN_HASH}" != "${STORED_HASH}" ]; then
-                echo "[telovix] enrollment token changed — clearing stale credentials for fresh enrollment"
+                echo "[telovix] enrollment token changed - clearing stale credentials for fresh enrollment"
                 rm -f /sensor-state/client.key.pem \
                       /sensor-state/client-credentials.json \
                       /sensor-state/certificate-renewal.json \
