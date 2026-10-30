@@ -53,6 +53,15 @@ rules:
     resources: ["deployments"]
     resourceNames: [{{ $name | quote }}]
     verbs: ["get"]
+  {{- if ne $mode "managed" }}
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["daemonsets"]
+    resourceNames: [{{ include "telovix-sensor.fullname" . | quote }}]
+    verbs: ["get", "list", "watch"]
+  {{- end }}
   {{- if eq $mode "managed" }}
   - apiGroups: [""]
     resources: ["configmaps", "secrets", "serviceaccounts", "services"]
