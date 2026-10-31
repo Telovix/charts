@@ -39,6 +39,7 @@ app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 app.kubernetes.io/part-of: telovix
+telovix.com/release-name: {{ .Release.Name | quote }}
 {{- end }}
 
 {{/*
