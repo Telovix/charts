@@ -276,7 +276,7 @@ spec:
         {{- if .Values.upgradeController.bootstrapCaSecret }}
         - name: bootstrap-ca
           secret:
-            secretName: {{ .Values.upgradeController.bootstrapCaSecret }}
+            secretName: {{ .Values.upgradeController.bootstrapCaSecret | quote }}
             items:
               - key: ca.crt
                 path: ca.crt
