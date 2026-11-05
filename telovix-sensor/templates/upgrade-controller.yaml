@@ -241,7 +241,7 @@ spec:
               value: {{ .Values.flavor | quote }}
             - name: TELOVIX_UPDATER_CAPTURE_WORKLOAD
               value: {{ include "telovix-sensor.fullname" . | quote }}
-            {{- if .Values.captureDelivery.enabled }}
+            {{- if get (.Values.captureDelivery | default dict) "enabled" }}
             - name: TELOVIX_UPDATER_DELIVERY_WORKLOAD
               value: {{ printf "%s-delivery" (include "telovix-sensor.fullname" . | trunc 54 | trimSuffix "-") | quote }}
             {{- end }}
