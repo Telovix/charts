@@ -12,6 +12,9 @@
 {{- if or (lt (int .Values.upgradeController.pollIntervalSeconds) 10) (gt (int .Values.upgradeController.pollIntervalSeconds) 300) }}
 {{- fail "upgradeController.pollIntervalSeconds must be between 10 and 300" }}
 {{- end }}
+{{- if and (get (.Values.captureDelivery | default dict) "enabled") (eq $mode "managed") (gt (int .Values.upgradeController.pollIntervalSeconds) 30) }}
+{{- fail "captureDelivery requires upgradeController.pollIntervalSeconds to be between 10 and 30" }}
+{{- end }}
 {{- if or (lt (int .Values.upgradeController.helmTimeoutSeconds) 120) (gt (int .Values.upgradeController.helmTimeoutSeconds) 3600) }}
 {{- fail "upgradeController.helmTimeoutSeconds must be between 120 and 3600" }}
 {{- end }}

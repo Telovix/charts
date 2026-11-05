@@ -249,6 +249,7 @@ upgradeController:
     tag: ""  # Defaults to .Chart.AppVersion if empty
     digest: ""
     pullPolicy: IfNotPresent
+  # 10-300 seconds; split capture/delivery deployments require 10-30 seconds.
   pollIntervalSeconds: 30
   helmTimeoutSeconds: 600
   identitySecret: ""
