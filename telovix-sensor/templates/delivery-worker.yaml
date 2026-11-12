@@ -121,7 +121,8 @@ spec:
                 - --delivery-worker-probe
             periodSeconds: 10
             timeoutSeconds: 5
-            failureThreshold: 1
+            # A single transient socket timeout must not abort a healthy owner rollout.
+            failureThreshold: 3
           resources:
             {{- toYaml (get $worker "resources") | nindent 12 }}
           securityContext:
