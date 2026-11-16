@@ -158,7 +158,18 @@ spec:
                 metadata=$(timeout -k 5s 20s "$1" --capture-owner-info) || return 1
                 # Metadata uses compact Sensor JSON; fail closed on unknown framing.
                 case "$metadata" in
-                  *'"delivery_protocol_version":9,'*) ;;
+                  *'"delivery_protocol_version":9,'*|*'"delivery_protocol_version":9}'*)
+                    case "$metadata" in
+                      *'"handoff_version":26,'*|*'"handoff_version":26}'*|*'"handoff_version":27,'*|*'"handoff_version":27}'*) ;;
+                      *) return 1 ;;
+                    esac
+                    ;;
+                  *'"delivery_protocol_version":10,'*|*'"delivery_protocol_version":10}'*)
+                    case "$metadata" in
+                      *'"handoff_version":28,'*|*'"handoff_version":28}'*) ;;
+                      *) return 1 ;;
+                    esac
+                    ;;
                   *) return 1 ;;
                 esac
                 printf '%s\n' "$metadata" | sed 's/"version":"[^"]*"/"version":""/'
