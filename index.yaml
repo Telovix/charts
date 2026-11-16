@@ -2,6 +2,28 @@ apiVersion: v1
 entries:
   telovix-console:
   - apiVersion: v2
+    appVersion: 1.0.44
+    created: "2026-11-16T16:36:21.915313129+09:00"
+    description: Telovix Console - eBPF security platform for 5G/Open RAN environments
+    digest: ab096f90f948bf1fa3d46fa40bd94cccefdb3c5cbc87cc5b8f59a4aad24faeb3
+    home: https://telovix.com
+    keywords:
+    - security
+    - ebpf
+    - telecom
+    - 5g
+    - oran
+    maintainers:
+    - email: engineering@telovix.com
+      name: Telovix
+    name: telovix-console
+    sources:
+    - https://gitlab.com/telovix/console
+    type: application
+    urls:
+    - https://telovix.github.io/charts/telovix-console-1.1.10.tgz
+    version: 1.1.10
+  - apiVersion: v2
     appVersion: 1.0.43
     created: "2026-11-16T07:53:26.352944265+09:00"
     description: Telovix Console - eBPF security platform for 5G/Open RAN environments
@@ -244,6 +266,36 @@ entries:
     - https://telovix.github.io/charts/telovix-console-1.0.0.tgz
     version: 1.0.0
   telovix-sensor:
+  - annotations:
+      category: Security
+      licenses: Commercial
+    apiVersion: v2
+    appVersion: 1.0.79
+    created: "2026-11-16T16:36:21.917864347+09:00"
+    description: 'Telovix eBPF Sensor - Carrier-grade eBPF security for telecom and
+      Open RAN environments. Deploys the Telovix Sensor as a DaemonSet on every Linux
+      node. Requires a running Telovix Console and a valid enrollment token. '
+    digest: 11d6e8637bd129559e04450989e385bbda98699557b109cafe3b0b87f3fbe785
+    home: https://telovix.com
+    icon: https://telovix.com/favicon.ico
+    keywords:
+    - ebpf
+    - security
+    - telecom
+    - oran
+    - monitoring
+    - telovix
+    maintainers:
+    - email: support@telovix.com
+      name: Telovix
+      url: https://telovix.com
+    name: telovix-sensor
+    sources:
+    - https://github.com/telovix/charts
+    type: application
+    urls:
+    - https://telovix.github.io/charts/telovix-sensor-1.0.79.tgz
+    version: 1.0.79
   - annotations:
       category: Security
       licenses: Commercial
@@ -1864,4 +1916,4 @@ entries:
     urls:
     - https://telovix.github.io/charts/telovix-sensor-1.0.0.tgz
     version: 1.0.0
-generated: "2026-11-16T07:53:26.348837392+09:00"
+generated: "2026-11-16T16:36:21.912899359+09:00"
