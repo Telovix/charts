@@ -166,7 +166,7 @@ spec:
                     ;;
                   *'"delivery_protocol_version":10,'*|*'"delivery_protocol_version":10}'*)
                     case "$metadata" in
-                      *'"handoff_version":28,'*|*'"handoff_version":28}'*) ;;
+                      *'"handoff_version":28,'*|*'"handoff_version":28}'*|*'"handoff_version":29,'*|*'"handoff_version":29}'*) ;;
                       *) return 1 ;;
                     esac
                     ;;
